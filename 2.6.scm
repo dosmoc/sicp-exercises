@@ -6,19 +6,19 @@
 ;evaluate (add-1 zero)
 
 ;body of add-1
-(lambda (f) (lambda (x) (f ((n f) x))))
+;(lambda (f) (lambda (x) (f ((n f) x))))
 
 ;substitute zero
-(lambda (f) (lambda (x) (f (((lambda (f) (lambda (x) x)) f) x))))
+;(lambda (f) (lambda (x) (f (((lambda (f) (lambda (x) x)) f) x))))
 
 ;reduce
-(lambda (f) (lambda (x) (f (((lambda (f) (lambda (x) x)) f) x))))
+;(lambda (f) (lambda (x) (f (((lambda (f) (lambda (x) x)) f) x))))
 
 ;evaluate operator:
-(lambda (f) (lambda (x) (f (((lambda (x) x) f) x))))
+;(lambda (f) (lambda (x) (f (((lambda (x) x) f) x))))
 
 ;apply:
-(lambda (f) (lambda (x) (f (f x))))
+;(lambda (f) (lambda (x) (f (f x))))
 
 ;so one can be defined directly as:
 (define one (lambda (f) (lambda (x) (f x))))
@@ -27,28 +27,28 @@
 ;evaluate (add-1 one)
 
 ;body of add-1
-(lambda (f) (lambda (x) (f ((n f) x))))
+;(lambda (f) (lambda (x) (f ((n f) x))))
 
 ;substitute one
-(lambda (f) (lambda (x) (f (((lambda (f) (lambda (x) (f (x)))) f) x))))
+;(lambda (f) (lambda (x) (f (((lambda (f) (lambda (x) (f (x)))) f) x))))
 
-;pull this one out 'cause my brain:
-((lambda (f) (lambda (x) (f (x)))) f)
+;;pull this one out 'cause my brain:
+;((lambda (f) (lambda (x) (f (x)))) f)
 
-;substitute:
-(lambda (x) (f x))
+;;substitute:
+;(lambda (x) (f x))
 
 ;so the reduced form:
-(lambda (f) (lambda (x) (f ((lambda (x) (f x)) x))))
+;(lambda (f) (lambda (x) (f ((lambda (x) (f x)) x))))
 
 ;so this expression:
-((lambda (x) (f x)) x)
+;((lambda (x) (f x)) x)
 
 ;reduces to:
-(f x)
+;(f x)
 
 ;so that reduction is:
-(lambda (f) (lambda (x) (f (f x))))
+;(lambda (f) (lambda (x) (f (f x))))
 
 ;so two is:
 (define two (lambda (f) (lambda (x) (f (f x)))))
@@ -61,12 +61,12 @@
 	(lambda (f) (lambda (x) (m ((n f) x)))))
 
 
-for example
+;for example
 (add two one)
 
-;nope, since the one function is subsituted for f
-;we want it to be (f (f (f x)))
-(lambda (f) (lambda (x) ((f x) ((f x) x))))
+;nope, since the one function is substituted for f
+;we want it to be (f (f (f x))) 
+;(lambda (f) (lambda (x) ((f x) ((f x) x))))
 
 ;(define (add n m)
 ;  (let ((n-x (n x)))
@@ -81,9 +81,10 @@ for example
 ;this is bending my brain
 
 ;multiplication?
-(define (add n m)
-  (lambda (f)
-    (lambda (x)
-      (((m (n f)) x)))))
+(define (mul n m)
+	(lambda (f) (lambda (x) ((m (n f)) x))))
 
-((add zero one) (lambda (x) (display "one")))
+
+(define four (mul two two))
+
+((four (lambda (x) (display x) (newline) x)) "hello")
