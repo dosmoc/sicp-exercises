@@ -95,6 +95,8 @@
 
 (print-point (make-point 1 2))
 
+(define (make-slope ri ru))
+
 (define (slope-segment s)
   (define (point->rat p)
     (make-rat (x-point p) (y-point p)))

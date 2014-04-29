@@ -35,21 +35,33 @@
         (diff-y (- (y-point point1) (y-point point2))))
     (sqrt (+ (square (diff-x)) (square (diff-y))))))
 
+
+(define (length-segment segment)
+  (distance (start-point segment) (end-point segment)))
+
 ;selectors
 (define (make-rectangle p1 p2 p3 p4)
   (cons (cons (make-segment p1 p2) (make-segment p2 p3))
         (cons (make-segment p3 p4) (make-segment p4 p1))))
 
-(define (rect-base rectangle)
-  (let ((top-seg (car (car rectangle))))
-    ((start-segment (car top-seg)))))
+(define (base-rectangle rectangle) 
+  (length-segment (caar rectangle)))
 
-(define (rect-height rectangle)
-  ())
+(define (height-rectangle rectangle) 
+  (length-segment (cadr (cdr rectangle))))
 
 ;rectangle operations
 (define (rect-perimeter rectangle)
-  (* 2 (+ (rect-base rectangle) (rect-height))))
+  (* 2 (+ (base-rectangle rectangle) (height-rectangle height))))
 
 (define (rect-area rectangle)
-  (* (rect-base rectangle) (rect-height)))
+  (* (base-rectangle rectangle) (height-rectangle rectangle)))
+
+;(define (make-rectangle p1 p2 p3 p4)
+;  (cons (cons p1 p2) (cons p3 p4)))
+;
+;(define (base-rectangle rectangle) 
+;  (distance (caar rectangle) (cadr rectangle)))
+;
+;(define (height-rectangle rectangle) 
+;  (distance (cadr rectangle) (cadr (cdr rectangle)))) 
