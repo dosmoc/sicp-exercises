@@ -5,7 +5,6 @@
 (define (inc x)
   (+ x 1))
 
-
 ;1.2.1  Linear Recursion and Iteration
 
 (define (factorial n)
@@ -260,3 +259,142 @@
 ;Exercise 1.13
 
 ;TODO: learn proof by induction, thanks Bastrop school system
+
+;Exercise 1.14
+
+;TODO: make a drawing
+
+;Exercise 1.15
+
+(define (cube x) (* x x x))
+
+(define (p x) (- (* 3 x) (* 4 (cube x))))
+
+(define (sine angle)
+  (if (not (> (abs angle) 0.1))
+      angle
+      (p (sine (/ angle 3.0)))))
+
+;(sine 12.5)
+;
+;(if (not (> (abs 12.5) 0.1))
+;      12.5
+;      (p (sine (/ 12.5 3.0))))
+;
+;(p (sine (/ 12.5 3.0)))
+;
+;(p (sine 4.166666666666667))
+;(p (p (sine 1.388888888888889)))
+;(p (p (p (sine .462962962962963))))
+;(p (p (p (p (sine .154320987654321)))))
+;(p (p (p (p (p (sine .051440329218107005)))))
+;
+; 5 times
+; 
+; looks logarithmic because the angle is divided by three
+; each time the procedure is applied; 
+; I can't express it more formally
+
+;1.2.4 Exponentiation
+(define (expt b n)
+  (if (= n 0)
+      1
+      (* b (expt b (- n 1)))))
+
+(define (expt b n)
+  (expt-iter b n 1))
+
+(define (expt-iter b counter product)
+  (if (= counter 0)
+      product
+      (expt-iter b
+                (- counter 1)
+                (* b product)))) 
+
+(define (even? n)
+  (= (remainder n 2) 0))
+
+(define (fast-expt b n)
+  (cond ((= n 0) 1)
+        ((even? n) (square (fast-expt b (/ n 2))))
+        (else (* b (fast-expt b (- n 1))))))
+
+;Exercise 1.16
+;(b^n/2)^2 = (b^2)^n/2
+; keep exponent n and base b, state variable a, a * b^n is unchanged from state to state
+
+(define (fast-expt-iter b n a)
+	(cond ((= n 0) a)
+          ((even? n) (fast-expt-iter (square b) (/ n 2) a))
+          (else (fast-expt-iter b (- n 1) (* b a)))))
+
+(define (fast-expt-i b n)
+  (fast-expt-iter b n 1))
+
+(fast-expt-i 2 0)
+(fast-expt-i 2 1)
+(fast-expt-i 2 2)
+(fast-expt-i 2 3)
+(fast-expt-i 2 4)
+(fast-expt-i 2 5)
+
+;Exercise 1.17 (from old work)
+(define (double x) (* x 2))
+
+(define (halve x) (/ x 2))
+
+(define (m-iter a b)
+  (define (mul-iter a b)
+    (cond  ((= b 0) 0) ;Mixing iterative with recursive calls introduces additional conditions
+      	   ((= b 1) a)
+           ((even? b) (mul-iter (double a) (halve b)))
+           (else (+ a (mul-iter a (- b 1))))))
+  (mul-iter a b))
+
+;the sicp answers solution is fully recursive... the double is deferred
+(define (* a b) 
+    (cond ((= b 0) 0) 
+          ((even? b) (double (* a (halve b)))) 
+          (else (+ a (* a (- b 1)))))) 
+
+(define (add x y) 
+  (+ x y))
+
+(m-iter 0 1)
+(m-iter 0 2)
+(m-iter 0 3)
+(m-iter 3 0)
+(m-iter 3 1)
+(m-iter 3 2)
+(m-iter 3 3)
+(m-iter 3 4)
+(m-iter 3 5)
+(m-iter 3 6)
+(m-iter 3 7)
+(m-iter 3 300)
+
+;Exercise 1.18 (from old work)
+(define (m-iter a b)
+  (define (mul-iter a b product)
+    (newline)
+    (display b)
+    (cond  ((= b 0) product)
+           ((even? b) (mul-iter (double a) (halve b) product))
+           (else (mul-iter a (- b 1) (+ product a)))))
+  (mul-iter a b 0))
+
+(m-iter 0 1)
+(m-iter 0 2)
+(m-iter 0 3)
+(m-iter 2 5)
+(m-iter 3 0)
+(m-iter 3 1)
+(m-iter 3 2)
+(m-iter 3 3)
+(m-iter 3 4)
+(m-iter 3 5)
+(m-iter 3 6)
+(m-iter 3 7)
+(m-iter 3 300)
+
+;Exercise 1.19
