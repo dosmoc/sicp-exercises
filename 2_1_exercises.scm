@@ -24,25 +24,53 @@
   (z (lambda (p q) q)))
 
 ;Exercise 2.5
-(define (iterative-improve good-enough? improve)
-  (lambda (first-guess)
-    (define (iter guess)
-       (if (good-enough? guess)
-           guess
-           (iter (improve guess))))
-    
-    (iter first-guess)))
-
+;cons as integer
 
 (define (cons a b)
   (* (expt 2 a) (expt 3 b)))
 
-;Looks like I didn't finish car
-(define (cdr b)
-	((iterative-improve (lambda (guess) (= b (* (expt 2 (expt (- 1 guess))) 
-                                             (expt 3 guess))))
-                     	(lambda (guess) (+ 1 guess))) 
-  b))
+(define (inc x) (+ x 1))
+
+(define (dec x) (- x 1))
+
+(define (num-divisions base current count)
+  (if (= (remainder current base) 0)
+      (num-divisions base (/ current base) (inc count))
+      current))
+
+(define (num-expt goal base count)
+  (let ((e (expt base count)))
+   (if (= goal e)
+      count
+      (num-expt goal base (inc count)))))
+
+(define (car x)
+  (let ((base 2))
+   (num-expt (/ x (num-divisions base x 0)) base 0)))
+
+(define (cdr x)
+  (let ((base 3))
+   (num-expt (/ x (num-divisions base x 0)) base 0)))
+
+;got the idea from http://www.billthelizard.com/2010/10/sicp-25-representing-pairs-as-product.html,
+;started to read a little, then decided to try without looking at the code... missed 
+;the simplest solution because my num-divs divides the wrong thing. Here's Bill's much
+;cleaner code
+(define (num-divs n d)
+  (define (iter x result)
+    (if (= 0 (remainder x d))
+        (iter (/ x d) (+ 1 result))
+        result))
+  (iter n 0))
+
+(define (car x)
+  (num-divs x 2))
+
+(define (cdr x)
+  (num-divs x 3))
+
+;apparently this is because of the Fundamental theorem of arithmetic; Euclid comes up
+;a lot, so maybe need to read his stuff?
 
 ;Exercise 2.6
 
