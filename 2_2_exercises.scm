@@ -716,12 +716,14 @@
   (accumulate + 0 (map * v w)))
 
 (define (matrix-*-vector m v)
-  (map <??> m))
+  (map (lambda (row) (dot-product row v)) m))
+
 (define (transpose mat)
-  (accumulate-n <??> <??> mat))
+  (accumulate-n cons nil mat))
+
 (define (matrix-*-matrix m n)
   (let ((cols (transpose n)))
-    (map <??> m)))
+    (map (lambda (row) (map (lambda (col) (dot-product row col)) cols)) m)))
 
 (define v 
   (list (list 1 2 3 4) 
