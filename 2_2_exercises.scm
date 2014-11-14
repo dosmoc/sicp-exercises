@@ -729,3 +729,69 @@
   (list (list 1 2 3 4) 
         (list 4 5 6 6) 
         (list 6 7 8 9)))
+
+;Exercise 2.38
+
+(define (fold-right op initial sequence)
+  (if (null? sequence)
+      initial
+      (op (car sequence)
+          (fold-right op initial (cdr sequence)))))
+
+(define (fold-left op initial sequence)
+  (define (iter result rest)
+    (if (null? rest)
+        result
+        (iter (op result (car rest))
+              (cdr rest))))
+  (iter initial sequence))
+
+What are the values of
+
+(fold-right / 1 (list 1 2 3)) 
+;3/2
+(fold-left / 1 (list 1 2 3))
+;1/6
+(fold-right list nil (list 1 2 3))
+;(1 (2 (3 ())))
+(fold-left list nil (list 1 2 3))
+;(((() 1) 2) 3)
+;the op must be communitivity to guarantee the fold-right and fold-left will produce the same 
+;values for any sequence
+
+;Exercise 2.39
+
+(define (fold-left op initial sequence)
+  (define (iter result rest)
+    (if (null? rest)
+        result
+        (iter (op result (car rest))
+              (cdr rest))))
+  (iter initial sequence))
+
+(define (fold-right op initial sequence)
+  (if (null? sequence)
+      initial
+      (op (car sequence)
+          (fold-right op initial (cdr sequence)))))
+
+(define (reverse sequence)
+  (fold-right (lambda (x y) (cons y x)) nil sequence))
+;this gets us the wrong thing:
+;((((() . 4) . 3) . 2) . 1)
+; something like (op 1 (op 2 (op 3 (op 4 nil))))
+
+(define (append list1 list2)
+  (if (null? list1)
+      list2
+      (cons (car list1) (append (cdr list1) list2))))
+
+;after looking at my notes on the reverse from Exercise 2.18
+;and noticed append and went duh
+;(it felt crazy at first, but makes sense)
+(define (reverse sequence)
+  (fold-right (lambda (x y) (append y (list x))) nil sequence))
+
+;much clearer for fold left:
+(define (reverse sequence)
+  (fold-left (lambda (x y) (cons y x)) nil sequence))
