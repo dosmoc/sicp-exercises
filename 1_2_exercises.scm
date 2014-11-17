@@ -733,235 +733,32 @@
 ;Exercise 1.27
 ;carmichaels are: 561, 1105, 1729, 2465, 2821, 6601
 
+;write a procedure that takes an integer n 
+;and tests whether an is congruent to a modulo n for every a<n,
+; and try your procedure on the given Carmichael numbers.
+
+;(Two numbers are said to be congruent modulo n if they both have the same remainder when divided by n. 
+; The remainder of a number a when divided by n is also referred to as the remainder of a modulo n, or simply as a modulo n.)
+
+(define (test-carmichael n)
+  (define (iter a)
+    (cond ((= a n) true)
+          ((= (expmod a n n) a) (iter (+ 1 a))) ;if the test is true, loop
+          (else false)))
+  (iter 0))
+
+(test-carmichael 561)
+(test-carmichael 1105)
+(test-carmichael 1729)
+(test-carmichael 2465)
+(test-carmichael 2821)
+(test-carmichael 6601)
+
 ;Exercise 1.28
 
-;1.3  Formulating Abstractions with Higher-Order Procedures
+a number not equal to 1 or n - 1 whose square is equal to 1 modulo n
 
-;1.3.1  Procedures as Arguments
-
-(define (sum-integers a b)
-  (if (> a b)
-      0
-      (+ a (sum-integers (+ a 1) b))))
-
-(define (pi-sum a b)
-  (if (> a b)
-      0
-      (+ (/ 1.0 (* a (+ a 2))) (pi-sum (+ a 4) b))))
-
-(define (sum term a next b)
-  (if (> a b)
-      0
-      (+ (term a)
-         (sum term (next a) next b))))
-
-(define (inc n) (+ n 1))
-(define (sum-cubes a b)
-  (sum cube a inc b))
-
-(sum-cubes 1 10)
-
-(define (identity x) x)
-
-(define (sum-integers a b)
-  (sum identity a inc b))
-
-(sum-integers 1 10)
-
-(define (pi-sum a b)
-  (define (pi-term x)
-    (/ 1.0 (* x (+ x 2))))
-  (define (pi-next x)
-    (+ x 4))
-  (sum pi-term a pi-next b))
-
-(* 8 (pi-sum 1 1000))
-
-(define (integral f a b dx)
-  (define (add-dx x) (+ x dx))
-  (* (sum f (+ a (/ dx 2.0)) add-dx b)
-     dx))
-
-(integral cube 0 1 0.01)
-
-(integral cube 0 1 0.001)
-
-;Exercise 1.29
-(define (integral-simpson f a b n)
-  (define h (/ (- b a ) n))
-    
-  (define (yk-next x)
-    (newline)
-    (display (* x 1.0))
-    (newline)
-    (+ x h)) 
-  (* (/ h 3.0)
-     (sum f a yk-next b)))
-
-(define (integral-simpson2 f a b n)
-  (define h (/ (- b a ) n))
-  
-  (define (seq a) (/ a h))
-  
-  (define (y-k x) (+ x h))
-  
-  (define (yk-next x)
-    (cond ((= a (seq x)) (y-k x))
-          ((= b (seq x)) (y-k x))
-          ((even? (seq x)) (* 2 (y-k x)))
-          (else (* 4 (y-k x)))))
-   
-  (* (/ h 3.0)
-     (sum f a yk-next b)))
-
-;the function is not applied
-;to each term directly
-;but in accordance with yk = f(a + kh)
-(define (integral-simpson3 f a b n)
-  (define h (/ (- b a ) n))
-  
-  (define (inc x)
-    (+ x 1))
-  
-  (define (y k)
-   (f (+ a (* k h))))
-  
-  (define (term k)
-   (* (cond ((odd? k) 4)
-            ((or (= k 0) (= k n)) 1)
-            ((even? k) 2))
-      (y k)))
-   
-  (* (/ h 3.0)
-     (sum term 0 inc n)))
-
-(integral cube 0 1 .001)
-
-(integral-simpson cube 0 1 1000)
-
-(integral-simpson2 cube 0 1 1000)
-
-(integral-simpson3 cube 0 1 1000)
-
-
-;Exercise 1.30
-(define (sum-itered term a next b)
-  (define (iter a result)
-    (newline)
-    (display a)
-    (display result)
-    
-    (if (> a b)
-        result
-        (iter (next a) (+ result (term a)))))
-  (iter a 0))
-
-
-(sum-itered identity 2 inc 4)
-
-(sum-itered cube 2 inc 4)
-
-(sum-cubes 2 4)
-
-;Exercise 1.31
-(define (product term a next b)
-  (define (iter a result)
-    (if (> a b)
-        result
-        (iter (next a) (* result (term a)))))
-  (iter a 1))
-
-
-;a.
-(define (factorial n)
-    
-  (define (next x) (+ x 1))
-  
-  (product identity 1 next n))
-
-(factorial 5)
-
-(define (pi-approximations n)
-  (define (next x) (+ x 1))
-  
-  (define (offset n) (+ n 2))
-
-  (define (numer n)
-    (if (or (= 0 n) (even? n))
-      (offset n)
-      (inc (offset n))))
-
-  (define (denom n)
-    (if (or (= 0 n) (even? n))
-      (inc (offset n))
-      (offset n)))
-
-  (define (term x)
-    (/ (numer x) (denom x)))
-  
-  (* 4.0 (product term 0 next n)))
-
-(factorial 1)
-(factorial 2)
-(factorial 3)
-(factorial 4)
-(factorial 5)
-
-;b.
-(define (product-recur term a next b)
-  (if (> a b)
-      1
-      (* (term a)
-         (product-recur term (next a) next b))))
-
-
-(pi-approximations 10000)
-
-(product identity 2 inc 5)
-
-(product-recur identity 2 inc 5)
-
-;Exercise 1.32
-;iterative
-(define (accumulate combiner null-value term a next b)
-  (define (iter a result)
-    (if (> a b)
-        result
-        (iter (next a) (combiner result (term a)))))
-  (iter a null-value))
-
-;recursive
-(define (accumulate combiner null-value term a next b)
-  (if (> a b)
-      null-value
-      (combiner (term a)
-                (accumulate combiner null-value term (next a) next b))))
-
-
-(define (identity x) x)
-
-(define (inc x) (+ x 1))
-
-
-(define (sum term a next b)
-  (accumulate + 0 term a next b))
-
-(define (product term a next b)
-  (accumulate * 1 term a next b))
-
-
-;Exercise 1.33
-(define (filtered-accumulate combiner null-value term a next b filter)
-  (if (> a b)
-      null-value
-      (combiner (term a)
-                (accumulate combiner null-value term (next a) next b))))
-
-(define (filtered-accumulate combiner null-value term a next b filter)
-  ((cond ((> a b) null-value)
-         ((not (filter (term a)))
-          (combiner null-value
-                    (accumulate combiner null-value term (next a) next b)))
-         (else 
-          (combiner (term a)
-                    (accumulate combiner null-value term (next a) next b)))))
+(define (non-trivial-sqrt-1? n m) 
+  (cond ((= n 1) false)
+        ((= n (- m 1)) false)
+        (else (= (square n) (remainder 1 m)))))
