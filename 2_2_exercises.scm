@@ -746,7 +746,7 @@
               (cdr rest))))
   (iter initial sequence))
 
-What are the values of
+;What are the values of
 
 (fold-right / 1 (list 1 2 3)) 
 ;3/2
@@ -795,3 +795,94 @@ What are the values of
 ;much clearer for fold left:
 (define (reverse sequence)
   (fold-left (lambda (x y) (cons y x)) nil sequence))
+
+;Nested Mappings
+
+
+;(accumulate append
+;            nil
+;            (map (lambda (i)
+;                   (map (lambda (j) (list i j))
+;                        (enumerate-interval 1 (- i 1))))
+;                 (enumerate-interval 1 n)))
+
+(define (flatmap proc seq)
+  (accumulate append nil (map proc seq)))
+
+;define prime
+(define (prime? n)
+  (define (next x) (if (= x 2) 3 (+ x 2)))
+  
+  (define (divides? a b)
+    (= (remainder b a) 0))
+
+  (define (find-divisor n test-divisor)
+    (cond ((> (square test-divisor) n) n)
+          ((divides? test-divisor n) test-divisor)
+          (else (find-divisor n (next test-divisor)))))
+
+  (define (smallest-divisor n)
+    (find-divisor n 2))
+  (= n (smallest-divisor n))) 
+
+(define (prime-sum? pair)
+  (prime? (+ (car pair) (cadr pair))))
+
+(define (make-pair-sum pair)
+  (list (car pair) (cadr pair) (+ (car pair) (cadr pair))))
+
+(define (prime-sum-pairs n)
+  (map make-pair-sum
+       (filter prime-sum?
+               (flatmap
+                (lambda (i)
+                  (map (lambda (j) (list i j))
+                       (enumerate-interval 1 (- i 1))))
+                (enumerate-interval 1 n)))))
+
+
+(define (permutations s)
+  (if (null? s)                    ; empty set?
+      (list nil)                   ; sequence containing empty set
+      (flatmap (lambda (x)
+                 (map (lambda (p) (cons x p))
+                      (permutations (remove x s))))
+               s)))
+
+(define (remove item sequence)
+  (filter (lambda (x) (not (= x item)))
+          sequence))
+
+(permutations (list 1 2 3))
+
+;Exercise 2.40
+(define (unique-pairs n)
+  (flatmap (lambda (i)
+            (map (lambda (j) (list i j))
+                 (enumerate-interval 1 (- i 1))))
+            (enumerate-interval 1 n)))
+
+(define (prime-sum-pairs n)
+  (map make-pair-sum (filter prime-sum? (unique-pairs n))))
+
+;Exercise 2.41
+(define (sums-to-s n s)
+  (define (sums? x)
+    (= (+ (car x) (cadr x)) s))
+  
+  (map make-pair-sum (filter sums? (unique-pairs n))))
+
+(sums-to-s 10 5)
+;waitaminute this is about triples
+
+(define (unique-triples n)
+  (flatmap (lambda (k)
+             (map (lambda (ij) (cons k ij))
+               (unique-pairs (- k 1))))
+           (enumerate-interval 1 n)))
+
+(define (sums-to-s n s)
+  (define (sums? x)
+    (= (+ (car x) (cadr x) (caddr x)) s))
+  
+  (filter sums? (unique-triples n)))
