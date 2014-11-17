@@ -573,11 +573,6 @@
 
 ;1.2.6  Example: Testing for Primality
 
-(define (gcd a b)
-  (if (= b 0)
-      a
-      (gcd b (remainder a b))))
-
 (define (divides? a b)
   (= (remainder b a) 0))
 
