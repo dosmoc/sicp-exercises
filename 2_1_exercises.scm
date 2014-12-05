@@ -54,8 +54,8 @@
 
 ;got the idea from http://www.billthelizard.com/2010/10/sicp-25-representing-pairs-as-product.html,
 ;started to read a little, then decided to try without looking at the code... missed 
-;the simplest solution because my num-divs divides the wrong thing. Here's Bill's much
-;cleaner code
+;the simplest solution because my num-divs divides the wrong thing. Here's Bill's more correct
+;code:
 (define (num-divs n d)
   (define (iter x result)
     (if (= 0 (remainder x d))
@@ -69,8 +69,8 @@
 (define (cdr x)
   (num-divs x 3))
 
-;apparently this is because of the Fundamental theorem of arithmetic; Euclid comes up
-;a lot, so maybe need to read his stuff?
+;this is because of the Fundamental theorem of arithmetic; Euclid comes up
+;a lot, so maybe need to read his stuffs
 
 ;Exercise 2.6
 
