@@ -756,9 +756,51 @@
 
 ;Exercise 1.28
 
-a number not equal to 1 or n - 1 whose square is equal to 1 modulo n
+;a number 
+;not equal to 1 or n - 1 whose square is equal to 1 modulo n
 
-(define (non-trivial-sqrt-1? n m) 
-  (cond ((= n 1) false)
-        ((= n (- m 1)) false)
-        (else (= (square n) (remainder 1 m)))))
+
+(define (expmod base exp m)
+  (define (trivial? base n)
+    (and (not (= base 1) )
+         (not (= base (- n 1)))
+         (= (remainder (square base) n) 1)))
+
+  (define (zero-if-trivial base exp m) 
+    (if (trivial? base m)
+        0
+        (remainder (square (expmod base (/ exp 2) m)) m)))
+  
+  (cond ((= exp 0) 1)
+        ((even? exp)
+         (zero-if-trivial base exp m))
+        (else
+         (remainder (* base (expmod base (- exp 1) m))
+                    m))))  
+
+(define (rabin-test n)
+  (define (try-it a)
+    (= (expmod a n n) a))
+  (try-it (+ 1 (random (- n 1)))))
+
+(define (fast-prime? n times)
+  (cond ((= times 0) true)
+        ((rabin-test n) (fast-prime? n (- times 1))) ;if the fermat test is true, loop
+        (else false)))
+
+(define (test-carmichael n)
+  (define (iter a)
+    (cond ((= a n) true)
+          ((= (expmod a n n) a) (iter (+ 1 a))) ;if the test is true, loop
+          (else false)))
+  (iter 0))
+
+(test-carmichael 11)
+(test-carmichael 561)
+
+(test-carmichael 561)
+(test-carmichael 1105)
+(test-carmichael 1729)
+(test-carmichael 2465)
+(test-carmichael 2821)
+(test-carmichael 6601)
