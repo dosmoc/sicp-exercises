@@ -1,5 +1,106 @@
 ;2.1 Introduction to Data Abstraction
 
+;2.1.1  Example: Arithmetic Operations for Rational Numbers
+(define (add-rat x y)
+  (make-rat (+ (* (numer x) (denom y))
+               (* (numer y) (denom x)))
+            (* (denom x) (denom y))))
+(define (sub-rat x y)
+  (make-rat (- (* (numer x) (denom y))
+               (* (numer y) (denom x)))
+            (* (denom x) (denom y))))
+(define (mul-rat x y)
+  (make-rat (* (numer x) (numer y))
+            (* (denom x) (denom y))))
+(define (div-rat x y)
+  (make-rat (* (numer x) (denom y))
+            (* (denom x) (numer y))))
+(define (equal-rat? x y)
+  (= (* (numer x) (denom y))
+     (* (numer y) (denom x))))
+
+(define (make-rat n d) (cons n d))
+
+(define (numer x) (car x))
+
+(define (denom x) (cdr x))
+
+(define (print-rat x)
+  (newline)
+  (display (numer x))
+  (display "/")
+  (display (denom x)))
+
+;Exercise 2.1
+(define (abs x) (if (> x 0) x (- x)))
+
+;xor found here: http://stackoverflow.com/a/1975647
+;this is good enough for me
+(define (xor a b) (if a (not b) b))   
+
+(define (make-rat n d) 
+  (define (neg? x) (< x 0)) 
+  
+  (if (not (xor (neg? n) (neg? d)))
+      (cons (abs n) (abs d)) 
+      (cons (abs n) (- (abs d)))))
+
+
+;Exercise 2.2
+(define (print-point p)
+  (newline)
+  (display "(")
+  (display (x-point p))
+  (display ",")
+  (display (y-point p))
+  (display ")"))
+
+(define (make-segment p1 p2) (cons p1 p2))
+
+(define (start-segment p) (car p))
+
+(define (end-segment p) (cdr p))
+
+(define (make-point x y) (cons x y))
+
+(define (x-point p) (car p))
+
+(define (y-point p) (cdr p))
+
+;Exercise 2.3
+(define (length-segment s)
+  (let ((x1 (x-point (start-segment s)))
+        (y1 (y-point (start-segment s)))
+        (x2 (x-point (end-segment s)))
+        (y2 (y-point (end-segment s))))
+   (sqrt (+ (square (- x1 x2))
+            (square (- y1 y2))))))
+
+(define (make-rectangle p1 p2 p3 p4)
+  (if (and (perpendicular? p1 p2 p3)
+           (perpendicular? p2 p3 p4))
+      (cons (make-segment p1 p2) (make-segment p2 p3))
+      (error "These points to not make four right angles.")))
+
+(define (height-rectangle r) 
+  (let ((s1 (car r))
+        (s2 (cdr r)))
+    (if (>= (length-segment s1) (length-segment s2)) s1 s2)))
+
+(define (base-rectangle r) 
+  (let ((s1 (car r))
+        (s2 (cdr r)))
+    (if (>= (length-segment s1) (length-segment s2)) s2 s1)))
+
+(define (perimeter r)
+  (+ (* 2 (length-segment base-rectangle)) 
+     (* 2 (length-segment height-rectangle))))
+
+(define (area r)
+  (* (length-segment base-rectangle) 
+     (length-segment height-rectangle)))
+
+
 ;Exercise 2.4
 ;save the old version
 (define orig-cons cons)
