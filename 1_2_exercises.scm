@@ -148,6 +148,8 @@
 ; (A 0 (A 0 (A 0 2))))
 ; (A 0 (A 0 (* 2 2))
 ; (A 0 (A 0
+;I'm getting the point
+
 
 (define (k n) (* 5 n n))
 
@@ -249,8 +251,6 @@
 ;If x or y is zero, then the value is 1
 ;Otherwise add the previous two Pascal numbers
 
-
- 
 (define (pascal x y)
   (if (or (= x 0) (= y 0))
       1
@@ -464,7 +464,7 @@
 ;p'''' = 13 ; q'''' = 21, 
 ;p'''' = q'' ; q'''' = p + q + q
 
-
+;too confusing, let's just try numbers
 ;(0, 1)   
 ;(1, 1)   (+ 0 q)       (+ 0 q)  ??
 ;(2, 3)   (+ p q)       (+ p q q) 
@@ -568,8 +568,6 @@
 ;      2
 ;      (gcd 2 (remainder 2 2)))
 ;5 times
-
-
 
 ;1.2.6  Example: Testing for Primality
 
@@ -758,16 +756,17 @@
 
 ;a number 
 ;not equal to 1 or n - 1 whose square is equal to 1 modulo n
-
-
 (define (expmod base exp m)
-  (define (trivial? base n)
+  
+  ;okay, I had to look up what a non-trivial square root
+  ;means
+  (define (non-trivial? base n)
     (and (not (= base 1) )
          (not (= base (- n 1)))
          (= (remainder (square base) n) 1)))
 
   (define (zero-if-trivial base exp m) 
-    (if (trivial? base m)
+    (if (non-trivial? base m)
         0
         (remainder (square (expmod base (/ exp 2) m)) m)))
   

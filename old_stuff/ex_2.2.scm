@@ -39,26 +39,28 @@
 (define (length-segment segment)
   (distance (start-point segment) (end-point segment)))
 
-;selectors
+
 (define (make-rectangle p1 p2 p3 p4)
-  (cons (cons (make-segment p1 p2) (make-segment p2 p3))
-        (cons (make-segment p3 p4) (make-segment p4 p1))))
+  (let ((side-1 (cons (make-segment p1 p2) (make-segment p2 p3)))
+        (side-2 (cons (make-segment p3 p4) (make-segment p4 p1))))
+   (cons side-1 side-2)))
 
-(define (base-rectangle rectangle) 
-  (length-segment (caar rectangle)))
+;selectors
+(define (base-rectangle r) 
+  (length-segment (caar r)))
 
-(define (height-rectangle rectangle) 
-  (length-segment (cadr (cdr rectangle))))
+(define (height-rectangle r) 
+  (length-segment (cadr (cdr r))))
 
 ;rectangle operations
-(define (rect-perimeter rectangle)
-  (* 2 (+ (base-rectangle rectangle) (height-rectangle height))))
+(define (rect-perimeter r)
+  (* 2 (+ (base-rectangle r) (height-rectangle r))))
 
-(define (rect-area rectangle)
-  (* (base-rectangle rectangle) (height-rectangle rectangle)))
+(define (rect-area r)
+  (* (base-rectangle r) (height-rectangle r)))
 
 ;(define (make-rectangle p1 p2 p3 p4)
-;  (cons (cons p1 p2) (cons p3 p4)))
+;  (cons (cons p1 p2) (cons p2 p3)))
 ;
 ;(define (base-rectangle rectangle) 
 ;  (distance (caar rectangle) (cadr rectangle)))

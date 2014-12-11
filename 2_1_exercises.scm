@@ -110,7 +110,6 @@
 	(lambda (f) (lambda (x) ((m (n f)) x))))
 
 
-
 ;restore to the originals
 (define cons orig-cons)
 (define car orig-car)
@@ -299,3 +298,8 @@
 (div-interval i5 i5)
 (div-interval i5 i7)
 
+;Exercise 2.15
+
+;Exercise 2.16
+;Probably because we are working with floating point numbers
+;and each operation on them can lead to a loss of precision

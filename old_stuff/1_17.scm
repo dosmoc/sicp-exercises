@@ -5,7 +5,6 @@
 (define (even? n)
   (= (remainder n 2) 0))
 
-
 (define (m-iter a b)
   (define (mul-iter a b)
     (cond  ((= b 0) 0) ;Mixing iterative with recursive calls introduces additional conditions
@@ -15,11 +14,13 @@
   (mul-iter a b))
 
 ;the sicp answers solution is fully recursive... the double is deferred
- (define (* a b) 
-   (cond ((= b 0) 0) 
-         ((even? b) (double (* a (halve b)))) 
-         (else (+ a (* a (- b 1)))))) 
+(define (* a b) 
+    (cond ((= b 0) 0) 
+          ((even? b) (double (* a (halve b)))) 
+          (else (+ a (* a (- b 1)))))) 
 
+(define (add x y) 
+  (+ x y))
 
 (m-iter 0 1)
 (m-iter 0 2)

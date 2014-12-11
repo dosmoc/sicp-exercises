@@ -311,7 +311,6 @@
 
 ;this is a tree with data at the nodes:
 
-
 ;a)
 (define (left-branch mobile)
   (car mobile))
@@ -711,7 +710,6 @@
 ;that was suprisingly cool; map is cool...so so cool
 
 ;Exercise 2.37
-
 (define (dot-product v w)
   (accumulate + 0 (map * v w)))
 
@@ -731,7 +729,6 @@
         (list 6 7 8 9)))
 
 ;Exercise 2.38
-
 (define (fold-right op initial sequence)
   (if (null? sequence)
       initial
@@ -747,7 +744,6 @@
   (iter initial sequence))
 
 ;What are the values of
-
 (fold-right / 1 (list 1 2 3)) 
 ;3/2
 (fold-left / 1 (list 1 2 3))
@@ -760,7 +756,6 @@
 ;values for any sequence
 
 ;Exercise 2.39
-
 (define (fold-left op initial sequence)
   (define (iter result rest)
     (if (null? rest)
@@ -904,3 +899,10 @@
           (queen-cols (- k 1))))))
   (queen-cols board-size))
 
+(define (safe? k postions))
+
+(define (adjoin-position r k positions rest-of-queens))
+
+(define empty-board (list (list)))
+
+;uuugh

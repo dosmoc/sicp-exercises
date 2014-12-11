@@ -416,8 +416,7 @@ circumferences
 ;(define (cubrt x)
 ;  (cubrt-iter 1.0 x))
 ;
-;let's use block structure from the next
-;section so we can have sqrt later:
+;lets use block structure so we can have sqrt later:
 
 (define (cubrt x)
   (define (improve guess)
@@ -437,4 +436,3 @@ circumferences
 
 ;1.1.8  Procedures as Black-Box Abstractions
 
-;No exercises

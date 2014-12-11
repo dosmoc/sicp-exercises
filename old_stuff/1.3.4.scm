@@ -57,6 +57,7 @@
                             newton-transform
                             1.0))
 
+;Exercise 1.40
 (define (cubic a b c) 
   (lambda (x) (+ (cube x) (* a (square x)) (* b x) c)))
 
@@ -66,6 +67,7 @@
 
 (define (inc x) (+ x 1))
 
+;Exercise 1.41
 (define (double f)
   (lambda (x) (f (f x))))
 
@@ -78,12 +80,14 @@
 ;
 ;((lambda (x) (+ (+ (+ (+ x 1) 1) 1) 1)) 5)
 ;
-;(double (dobule dobule))
+;(double (double dobule))
 ;
 ;(lambda (x) ((double (double x)) ((double (double x)) x)))
 
+;Exercise 1.42
 (define (compose f g) (lambda (x) (f (g x))))
 
+;Exercise 1.43
 (define (repeated f n)
   (define (iter repeatedf count) 
     (if (<= count 1)
@@ -102,6 +106,7 @@
 
 (define (n-fold-smooth f n) (repeated (smooth f) n))
 
+;Exercise 1.45
 (define (sqrt x)
   (fixed-point-of-transform (lambda (y) (/ x y))
                             average-damp
@@ -131,6 +136,7 @@
                              (repeated average-damp num-damps)
                              1.0)))
 
+;Exercise 1.46
 (define (iterative-improve good-enough? improve)
   (lambda (first-guess)
     (define (iter guess)
