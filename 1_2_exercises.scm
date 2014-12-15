@@ -257,8 +257,68 @@
       (+ (pascal (dec x) y) (pascal x (dec y)))))
 
 ;Exercise 1.13
+;Prove that Fib(n) is the closest integer to phi^n/(sqrt 5), 
+;where phi = (1 + (sqrt 5))/2. Hint: Let psi = (1 - (sqrt 5))/2. 
+;Use induction and the definition of the Fibonacci numbers
+; (see section 1.2.2) 
+;to prove that Fib(n) = (phi^n - psi^n)/(sqrt 5).
 
-;TODO: learn proof by induction, thanks Bastrop school system
+;so we're trying to prove by induction that this:
+(define (fib n)
+  (cond ((= n 0) 0)
+        ((= n 1) 1)
+        (else (+ (fib (- n 1))
+                 (fib (- n 2))))))
+
+;is equivalent to this:
+(define phi (/ (+ 1 (sqrt 5)) 2))
+
+(define psi (/ (- 1 (sqrt 5)) 2))
+
+(define (fib-p n)
+  (/ (- (expt phi n) (expt psi n)) (sqrt 5)))
+
+;or written out as a whole:
+(define (fib-p n)
+  (/ (- (expt (/ (+ 1 (sqrt 5)) 2) n) 
+        (expt (/ (- 1 (sqrt 5)) 2) n)) 
+     (sqrt 5)))
+
+;the base cases:
+(fib 0)
+;0
+(fib 1)
+;1
+(fib-p 0) 
+;0
+(fib-p 1)
+;1
+
+;Now let n≥2 and suppose
+;the statement has been proved for n−2 and n−1, then
+(define (fib-n n)
+  (+ (fib-p (- n 1)) (fib-p (- n 2))))
+
+;lets solve that algebraically like
+(+ (/ (- (expt phi (- n 1)) (expt psi (- n 1))) 
+      (sqrt 5))
+   (/ (- (expt phi (- n 2)) (expt psi (- n 2))) 
+      (sqrt 5)))
+;which is:
+(/ (+ (- (expt phi (- n 1)) (expt psi (- n 1))) 
+      (- (expt phi (- n 2)) (expt psi (- n 2))))
+   (sqrt 5))
+
+;which is:
+(/ (- (+ (expt phi (- n 1)) (expt phi (- n 2)))
+      (+ (expt psi (- n 2)) (expt psi (- n 1))))
+   (sqrt 5))
+
+;finish this laaaater, but it's starting to look like this:
+;(/ (- (expt phi n) (expt psi n)) (sqrt 5))
+
+;I've started to learn more about proof by induction...better
+;than nothing
 
 ;Exercise 1.14
 
