@@ -78,6 +78,13 @@
 (define (y-point p) (cdr p))
 
 ;Exercise 2.3
+(define (recip-rat x)
+  (make-rat (denom x) (numer x)))
+
+(define (neg-recip-rat x)
+  (let ((r (recip-rat x)))
+    (make-rat (numer r) (- (denom r)))))
+
 (define (length-segment s)
   (let ((x1 (x-point (start-segment s)))
         (y1 (y-point (start-segment s)))
@@ -86,11 +93,34 @@
    (sqrt (+ (square (- x1 x2))
             (square (- y1 y2))))))
 
+(define (slope-segment s)
+  (let ((x1 (x-point (start-segment s)))
+        (y1 (y-point (start-segment s)))
+        (x2 (x-point (end-segment s)))
+        (y2 (y-point (end-segment s))))
+   (make-rat (- y2 y1) (- x2 x1))))
+
+(define (perpendicular-segments? s1 s2)
+  (define (neg-recip-rat? s1 s2)
+    (let ((n1 (numer s1))
+          (d1 (denom s1))
+          (n2 (numer (neg-recip-rat s2)))
+          (d2 (denom (neg-recip-rat s2))))
+      (and (= n1 n2) (= d1 d2))))
+  
+  (let ((slope1 (slope-segment s1))
+        (slope2 (slope-segment s2)))
+    (neg-recip-rat? slope1 slope2)))
+
 (define (make-rectangle p1 p2 p3 p4)
-  (if (and (perpendicular? p1 p2 p3)
-           (perpendicular? p2 p3 p4))
-      (cons (make-segment p1 p2) (make-segment p2 p3))
-      (error "These points to not make four right angles.")))
+  (let ((s1 (make-segment p1 p2))
+        (s2 (make-segment p2 p3))
+        (s3 (make-segment p3 p4))
+        (s4 (make-segment p4 p1)))
+   (if (and (perpendicular-segments? s1 s2)
+            (perpendicular-segments? s3 s4))
+      (cons s1 s2)
+      (error "These points to not make four right angles."))))
 
 (define (height-rectangle r) 
   (let ((s1 (car r))
