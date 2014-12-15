@@ -253,22 +253,23 @@
 ;(lambda (f) (lambda (x) (f (f x))))
 (define two (lambda (f) (lambda (x) (f (f x)))))
 
-;initially though this:
+;initially thought this:
 (define (add-church n m)
   (lambda (f) (lambda (x) (n ((m f) x)))))
 
-;but actually this, after banging head online
+;but actually this, after banging head
+;the sicp online answer gives the following
+(define (add-church n m)
+  (lambda (f) (lambda (x) ((n f) ((m f) x)))))
+;which results in (... (f (f (f (fx)))))
 ;seems obvious in retrospect, since we need to
 ;get the church numeral of n first to be able to
 ;wrap it around the other one 
-;(... (f (f (f (fx)))))
-(define (add-church n m)
-  (lambda (f) (lambda (x) ((n f) ((m f) x)))))
 
-;multiplication?
+;came across multiplication in my fumblings:
+;do the application of f n times, m times
 (define (mul-church n m)
 	(lambda (f) (lambda (x) ((m (n f)) x))))
-
 
 ;restore to the originals
 (define cons orig-cons)
