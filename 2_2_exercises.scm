@@ -884,6 +884,38 @@
 
 
 ;Exercise 2.42.  
+(define (adjoin-position new-row k rest-of-queens)
+  (cons (list new-row k) rest-of-queens))
+
+(define (row-position pos) (car pos))
+
+(define (col-position pos) (cadr pos))
+
+(define (all-true? bool-list)
+  (accumulate (lambda (a b) (and a b)) true bool-list))
+
+(define (safe-vert? k positions)
+  (all-true? (map (lambda (pos) (not (= (row-position pos) k))) 
+                  positions)))
+
+(define (safe-r-diag? k positions)
+  (let (k-row (length positions))
+    (all-true? (map (lambda (pos)
+                      (not (= (col-position pos) 
+                              ((+ k (- k-row (row-position pos)))))))
+                    positions))))
+
+(define (safe-l-diag? k positions)
+  (let (k-row (length positions))
+    (all-true? (map (lambda (pos)
+                      (not (= k (- (+ k-row (row-position pos)) 
+                                   (col-position pos)))))
+                    positions))))
+
+(define (safe? k positions)
+  (and (safe-vert? k positions) 
+       (safe-l-diag? k positions) 
+       (safe-r-diag? k positions)))
 
 (define (queens board-size)
   (define (queen-cols k)  
