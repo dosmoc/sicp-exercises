@@ -140,13 +140,32 @@
   (* (length-segment base-rectangle) 
      (length-segment height-rectangle)))
 
+(define (offset-point p offset)
+  (let ((x2 (+ (numer offset) (x-point p)))
+        (y2 (+ (denom offset) (y-point p))))))
+
+(define (offset-segment s offset)
+  (let ((start (offset-point (start-segment s)))
+        (end   (offset-point (end-segment s))))
+    (make-segment start end)))
+
+;this is kinda cheating-inspired by the
+;later vector example
+;the same base-rectangle and height-rectangle
+;procedures can be used if the representation is
+;just two segments
+(define (make-rectangle sa sb offset)
+  (if (perpendicular-segments? sa sb)
+      (let ((sa2 (offset-segment sa offset))
+            (sb2 (offset-segment sb offset)))
+        (cons sa2 sb2))
+      (error "These segments do not make a right angle.")))
 
 ;Exercise 2.4
 ;save the old version
 (define orig-cons cons)
 (define orig-car car)
 (define orig-cdr cdr)
-
 
 (define (cons x y)
   (lambda (m) (m x y)))
