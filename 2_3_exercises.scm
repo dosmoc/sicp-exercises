@@ -289,3 +289,399 @@
 ;((x * y) + (y * (x + 3)))
 
 ;b.
+
+;(deriv '(x + 3 * (x + y + 2)) 'x)
+;laterz
+
+;2.3.3  Example: Representing Sets
+
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((equal? x (car set)) true)
+        (else (element-of-set? x (cdr set)))))
+
+(define (adjoin-set x set)
+  (if (element-of-set? x set)
+      set
+      (cons x set)))
+
+(define (intersection-set set1 set2)
+  (cond ((or (null? set1) (null? set2)) '())
+        ((element-of-set? (car set1) set2)        
+         (cons (car set1)
+               (intersection-set (cdr set1) set2)))
+        (else (intersection-set (cdr set1) set2))))
+
+;Exercise 2.59
+(define (union-set set1 set2)
+  (cond ((null? set1) set2)
+        ((null? set2) set1)
+        ((not (element-of-set? (car set1) set2))       
+         (cons (car set1)
+               (union-set (cdr set1) set2)))
+        (else (union-set (cdr set1) set2))))
+
+;Exercise 2.60.
+
+;stays the same, but potentially could have to
+;iterate through many duplicated items
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((equal? x (car set)) true)
+        (else (element-of-set? x (cdr set)))))
+
+;this one is better... you don't need the element-of-set
+;test
+(define (adjoin-set x set) (cons x set))
+
+;this one gets worse because you can have duplicates
+;so element-of-set? may be called more
+(define (intersection-set set1 set2)
+  (cond ((or (null? set1) (null? set2)) '())
+        ((element-of-set? (car set1) set2)        
+         (cons (car set1)
+               (intersection-set (cdr set1) set2)))
+        (else (intersection-set (cdr set1) set2))))
+
+;this one is better... you don't need the element-of-set
+;test
+(define (union-set set1 set2)
+  (cond ((null? set1) set2)
+        ((null? set2) set1)
+        (else (append set1 set2))))
+
+;Todo: applications?
+
+;Sets as ordered lists
+;still O(n)
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((= x (car set)) true)
+        ((< x (car set)) false)
+        (else (element-of-set? x (cdr set)))))
+
+(define (intersection-set set1 set2)
+  (if (or (null? set1) (null? set2))
+      '()    
+      (let ((x1 (car set1)) (x2 (car set2)))
+        (cond ((= x1 x2)
+               (cons x1
+                     (intersection-set (cdr set1)
+                                       (cdr set2))))
+              ((< x1 x2)
+               (intersection-set (cdr set1) set2))
+              ((< x2 x1)
+               (intersection-set set1 (cdr set2)))))))
+
+;from O(n^2) to O(n)
+
+(define (adjoin-set x set)
+  (cond ((null? set) (list x))
+        ((= x (car set)) set)
+        ((< x (car set)) (cons x set))
+        (else (cons (car set) (adjoin-set x (cdr set))))))
+
+(define (union-set set1 set2)
+  (cond ((null? set1) set2)
+        ((null? set2) set1)
+       (else (let ((x1 (car set1)) (x2 (car set2)))
+               (cond
+                ((= x1 x2) 
+                 (cons x1 (union-set (cdr set1) (cdr set2))))
+                ((< x1 x2)
+                 (cons x1 (union-set (cdr set1) set2)))
+                ((< x2 x1)
+                 (cons x2 (union-set set1 (cdr set2)))))))))
+
+;Sets as binary trees
+(define (entry tree) (car tree))
+(define (left-branch tree) (cadr tree))
+(define (right-branch tree) (caddr tree))
+(define (make-tree entry left right)
+  (list entry left right))
+
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((= x (entry set)) true)
+        ((< x (entry set))
+         (element-of-set? x (left-branch set)))
+        ((> x (entry set))
+         (element-of-set? x (right-branch set)))))
+
+(define (adjoin-set x set)
+  (cond ((null? set) (make-tree x '() '()))
+        ((= x (entry set)) set)
+        ((< x (entry set))
+         (make-tree (entry set) 
+                    (adjoin-set x (left-branch set))
+                    (right-branch set)))
+        ((> x (entry set))
+         (make-tree (entry set)
+                    (left-branch set)
+                    (adjoin-set x (right-branch set))))))
+
+;Exercise 2.63.  Each of the following two procedures
+; converts a binary tree to a list.
+
+(define (tree->list-1 tree)
+  (if (null? tree)
+      '()
+      (append (tree->list-1 (left-branch tree))
+              (cons (entry tree)
+                    (tree->list-1 (right-branch tree))))))
+
+(define (tree->list-2 tree)
+  (define (copy-to-list tree result-list)
+    (if (null? tree)
+        result-list
+        (copy-to-list (left-branch tree)
+                      (cons (entry tree)
+                            (copy-to-list (right-branch tree)
+                                          result-list)))))
+  (copy-to-list tree '()))
+
+;definition of append:
+(define (append list1 list2)
+  (if (null? list1)
+      list2
+      (cons (car list1) (append (cdr list1) list2))))
+
+(define tree-a '(7 (3 (1 () ()) (5 () ())) (9 () (11 () ()))))
+
+(define tree-b '(3 (1 () ()) (7 (5 () ()) (9 () (11 () ())))))
+
+(define tree-c '(5 (3 (1 () ()) ()) (9 (7 () ()) (11 () ()))))
+
+
+;a. Do the two procedures produce the same result for 
+;   every tree? If not, how do the results differ?
+;   What lists do the two procedures produce 
+;   for the trees in figure 2.16?
+
+(tree->list-1 tree-a)
+;(1 3 5 7 9 11)
+(tree->list-1 tree-b)
+;(1 3 5 7 9 11)
+(tree->list-1 tree-c)
+;(1 3 5 7 9 11)
+
+(tree->list-2 tree-a)
+;(1 3 5 7 9 11)
+(tree->list-2 tree-b)
+;(1 3 5 7 9 11)
+(tree->list-2 tree-c)
+;(1 3 5 7 9 11)
+
+;they appear to produce the same results
+
+;b. Do the two procedures have the same order of growth
+;   in the number of steps required to convert a balanced 
+;   tree with n elements to a list? If not, which one grows 
+;   more slowly?
+
+;todo orders of growth stuff
+
+;Sets and information retrieval
+
+(define (lookup given-key set-of-records)
+  (cond ((null? set-of-records) false)
+        ((equal? given-key (key (car set-of-records)))
+         (car set-of-records))
+        (else (lookup given-key (cdr set-of-records)))))
+
+;Exercise 2.66
+(define (lookup given-key set-of-records)
+  (cond ((null? set-of-records) false)
+        ((equal? given-key (key (entry set-of-records)))
+         (entry set-of-records))
+        ((< given-key (key (entry set-of-records)))
+         (lookup given-key (left-branch set)))
+        ((> given-key (key (entry set-of-records)))
+         (lookup given-key (right-branch set)))))
+
+(define (lookup given-key set-of-records)
+  (if (null? set-of-records) false
+        (let ((entry-key (key (entry set-of-records))))
+         (cond 
+          ((equal? given-key entry-key)
+           (entry set-of-records))
+          ((< given-key entry-key)
+           (lookup given-key (left-branch set)))
+          ((> given-key entry-key)
+           (lookup given-key (right-branch set)))))))
+
+;2.3.4  Example: Huffman Encoding Trees
+
+;Representing Huffman trees
+
+(define (make-leaf symbol weight)
+  (list 'leaf symbol weight))
+(define (leaf? object)
+  (eq? (car object) 'leaf))
+(define (symbol-leaf x) (cadr x))
+(define (weight-leaf x) (caddr x))
+
+(define (make-code-tree left right)
+  (list left
+        right
+        (append (symbols left) (symbols right))
+        (+ (weight left) (weight right))))
+
+
+(define (left-branch tree) (car tree))
+
+(define (right-branch tree) (cadr tree))
+
+(define (symbols tree)
+  (if (leaf? tree)
+      (list (symbol-leaf tree))
+      (caddr tree)))
+(define (weight tree)
+  (if (leaf? tree)
+      (weight-leaf tree)
+      (cadddr tree)))
+
+;The decoding procedure
+(define (decode bits tree)
+  (define (decode-1 bits current-branch)
+    (if (null? bits)
+        '()
+        (let ((next-branch
+               (choose-branch (car bits) current-branch)))
+          (if (leaf? next-branch)
+              (cons (symbol-leaf next-branch)
+                    (decode-1 (cdr bits) tree))
+              (decode-1 (cdr bits) next-branch)))))
+  (decode-1 bits tree))
+(define (choose-branch bit branch)
+  (cond ((= bit 0) (left-branch branch))
+        ((= bit 1) (right-branch branch))
+        (else (error "bad bit -- CHOOSE-BRANCH" bit))))
+
+;Sets of weighted elements
+
+(define (adjoin-set x set)
+  (cond ((null? set) (list x))
+        ((< (weight x) (weight (car set))) (cons x set))
+        (else (cons (car set)
+                    (adjoin-set x (cdr set))))))
+
+(define (make-leaf-set pairs)
+  (if (null? pairs)
+      '()
+      (let ((pair (car pairs)))
+        (adjoin-set (make-leaf (car pair)    ; symbol
+                               (cadr pair))  ; frequency
+                    (make-leaf-set (cdr pairs))))))
+
+;Exercise 2.67
+
+(define sample-tree
+  (make-code-tree (make-leaf 'A 4)
+                  (make-code-tree
+                   (make-leaf 'B 2)
+                   (make-code-tree (make-leaf 'D 1)
+                                   (make-leaf 'C 1)))))
+
+(define sample-message '(0 1 1 0 0 1 0 1 0 1 1 1 0))
+(decode sample-message sample-tree)
+;(a d a b b c a)
+
+;Exercise 2.68
+
+(define (encode message tree)
+  (if (null? message)
+      '()
+      (append (encode-symbol (car message) tree)
+              (encode (cdr message) tree))))
+
+(define (encode-symbol s tree)
+  (define (element-of-set? x set)
+    (cond ((null? set) false)
+          ((equal? x (car set)) true)
+          (else (element-of-set? x (cdr set)))))
+  
+  (define (iter bits current-branch)
+    (cond ((and (leaf? current-branch)
+                (equal? s (symbol-leaf current-branch))) bits)
+          ((element-of-set? s (symbols (left-branch current-branch)))
+           (iter (append bits (list '0)) 
+                 (left-branch current-branch)))
+          ((element-of-set? s (symbols (right-branch current-branch)))
+           (iter (append bits (list '1)) 
+                 (right-branch current-branch)))
+          (else (error "symbol not in encoding tree"))))
+  (iter '() tree))
+
+;testing
+(equal?
+  (encode (decode sample-message sample-tree) sample-tree)
+  sample-message)
+;#t
+
+;Exercise 2.69
+
+(define (generate-huffman-tree pairs)
+  (successive-merge (make-leaf-set pairs)))
+
+(define freqs '((A 4) (B 2) (C 1) (D 1)))
+
+(define leaf-set (make-leaf-set freqs))
+
+(define leaf-set2 (make-code-tree (car leaf-set) (cadr leaf-set)))
+
+(make-code-tree (car leaf-set2) (cadr leaf-set2))
+
+(define (successive-merge nodes)
+  (if (null? (cdr nodes))
+      (car nodes)
+      (successive-merge 
+        (cons (make-code-tree (cadr nodes) (car nodes))
+              (cddr nodes)))))
+
+(successive-merge leaf-set)
+;((leaf a 4) ((leaf b 2) ((leaf c 1) (leaf d 1) (c d) 2) (b c d) 4) (a b c d) 8)
+;is it possible to get rid of that final car?
+
+;Exercise 2.70
+
+;manually reordered -- sorting how?
+(define alpha-freqs
+  '((NA 16) (YIP 9) (SHA 3) (A 2) (GET 2) (JOB 2) (BOOM 1) (WAH 1)))
+
+(define h-tree (generate-huffman-tree alpha-freqs))
+
+(define message
+  '(get a job
+          sha na na na na na na na na
+          get a job
+          sha na na na na na na na na
+          wah yip yip yip yip yip yip yip yip yip
+          sha boom))
+
+(define encoded-message
+ (encode message (generate-huffman-tree alpha-freqs)))
+
+(decode encoded-message )
+
+encoded-message
+;(1 1 1 1 0 1 1 1 0 1 1 1 1 1 0 1 1 0 0 0 0 0 0 0 0 0 1 1 1 1 0 1 1 1 0 1 1 1 1 1 0 1 1 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 0 1 1 0 1 1 1 1 1 1 0)
+(length encoded-message)
+;87 bits needed
+;There are 8 sequences, so we need three bits per character if
+;we use fixed codes, so 108 bits total
+
+;Exercise 2.71
+;todo do a skeeeetch
+;One bit for the most frequent
+;n - 1 for the least frequent
+
+(define freqs2
+  '((a 16) (b 8) (c 4) (d 2) (e 1)))
+
+(generate-huffman-tree freqs2)
+
+;((leaf a 16) ((leaf b 8) ((leaf c 4) ((leaf d 2) (leaf e 1) (d e) 3) (c d e) 7) (b c d e) 15) (a b c d e) 31)
+
+;Exercise 2.72
+;Todo orders of growth analysis
