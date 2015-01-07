@@ -351,9 +351,39 @@
 ;
 ; 5 times
 ; 
-; looks logarithmic because the angle is divided by three
+; time growth looks logarithmic because the angle is divided by three
 ; each time the procedure is applied; 
 ; I can't express it more formally
+; space growth might also be logarithmic... if the number of calculations
+; required only grows by half each iteration. 
+
+;Thinking about this more, I wondered why you can't describe space growth linear
+;growth with a shallow slope, but Bill the Lizard says something that makes it clearer:
+
+;"If you keep adding to the input size, the space required only increases by one every so
+;often."
+
+;In this case, the "one" he's talking about is the deferred operation, "p". You don't have 
+;to call an extra p each n+1, which, intuitively, is indicative of logarithmic growth.
+
+;My intuitive notion of orders of growth of time:
+;It's exponential if you recursively call the function more than once
+;Linear if you call the function once
+;Logarithmic if you somehow half the problem each call to the function
+
+;Orders of growth of space:
+;Linear if pending operations = n
+;Constant if there are no deferred operations
+
+;Incidentally, I wonder if this is why recursive function calls were considered more 
+;costly than looping constructs: functions could be considered as deferred operations
+;since mostly you think of a function returning a value to some computation that
+;uses the value. Recursively calling a function would mean you'd have something like:
+;f (f (f (f (f (f x))))))
+;which looks like deferred operations.
+;However, tail recursion seems to be able to somehow unnest these and treat them
+;more like a goto over the body of the function while setting x to the previous
+;x... 
 
 ;1.2.4 Exponentiation
 (define (expt b n)
