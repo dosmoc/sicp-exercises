@@ -21,6 +21,25 @@
       list2
       (cons (car list1) (append (cdr list1) list2))))
 
+;order of time growth....
+;let's consider n to be the length of the list.
+;For t(0), you have no primitive operations
+;for t(1), you have 3 primitive operations + t(n - 1))
+;so it looks like append grows linearly with the size of
+;list1 for non empty lists
+;let's see:
+
+(define (append list1 list2)
+  (newline)
+  (display "appending")
+  (if (null? list1)
+      list2
+      (cons (car list1) (append (cdr list1) list2))))
+
+;this procedure also makes a cons for each element of
+;list1, so it looks like the deferred operations also
+;grows linearly
+
 ;Exercise 2.17
 ;first attempt
 (define (last-pair items)
