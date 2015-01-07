@@ -30,7 +30,7 @@
                       (cons (list key-1
                                   (cons key-2 value))
                             (cdr local-table)))))
-      'ok)    
+      'ok)        
     (define (dispatch m)
       (cond ((eq? m 'lookup-proc) lookup)
             ((eq? m 'insert-proc!) insert!)
@@ -135,7 +135,10 @@
        (lambda (x y) (tag (* x y))))
   (put 'div '(scheme-number scheme-number)
        (lambda (x y) (tag (/ x y))))
-  
+  ;For exercise 2.81
+  (put 'exp '(scheme-number scheme-number)
+       (lambda (x y) (tag (expt x y))))
+ 
   (put 'make 'scheme-number
        (lambda (x) (tag x)))
   'done)
@@ -165,6 +168,13 @@
   (define (div-rat x y)
     (make-rat (* (numer x) (denom y))
               (* (denom x) (numer y))))
+  
+  ;added for Exercise 2.79
+  (define (equal-rat? x y)
+    (and (= (numer x) (numer y))
+         (= (denom x) (denom y))))
+  
+  
   ;; interface to rest of the system
   (define (tag x) (attach-tag 'rational x))
   (put 'add '(rational rational)
@@ -175,10 +185,19 @@
        (lambda (x y) (tag (mul-rat x y))))
   (put 'div '(rational rational)
        (lambda (x y) (tag (div-rat x y))))
-
+  
   (put 'make 'rational
        (lambda (n d) (tag (make-rat n d))))
+  
+  ;added for Exercise 2.79
+  (put '= 'rational equal-rat?)
+  
+  ;added for Exercise 2.80
+  (put 'denom 'rational denom)
+  (put 'numer 'rational numer)
+
   'done)
+
 (define (make-rational n d)
   ((get 'make 'rational) n d))
 
@@ -250,7 +269,7 @@
 
 ;Exercise 2.78
 (define (attach-tag type-tag contents) 
-  (cond ((number? contents) contends)
+  (cond ((number? contents) contents)
         (else (cons type-tag contents))))
 
 (define (type-tag datum) 
@@ -278,6 +297,7 @@
    ((get 'real-part '(polar)) n))
  (define (imag-part n)
    ((get 'imag-part '(polar)) n))
+ 
  (define (equ? n m)
    (apply-generic 'equ? n m))
  
@@ -290,7 +310,7 @@
         (= (imag-part n) (imag-part m))))
  
  (put 'equ? '(scheme-number scheme-number) =)
- (put 'equ? '(rational rational) equal?)
+ (put 'equ? '(rational rational) (get '= 'rational))
  (put 'equ? '(polar polar) equ-polar?)
  (put 'equ? '(rectangular rectangular) equ-rectangular?)
  ;will this work?
@@ -302,4 +322,206 @@
 (define (equ? n m)
   (apply-generic 'equ? n m))
 
-(define (=zero? n) (= n 0))
+;there's a problem with using equal? in the rational equality check
+;in the (equal? 0 0.0) -> #f
+;so you could use a similar technique as in the complex number
+;equality check...
+;however, in the text, the rational selectors where not exported
+;I've inserted them into the rational package and updated equ?
+;but the decision about which package to include the operator
+;definition is still up for grabs
+
+
+;Exercise 2.80
+(define (install-zero?-package)
+ (define (numer x)
+   ((get 'numer 'rational) x))
+  
+ (put '=zero? '(scheme-number)
+      (lambda (x) (= x 0)))
+ 
+ (put '=zero? '(rational) 
+      (lambda (x) (= (numer x) 0)))
+ 
+ (put '=zero? '(polar) 
+      (lambda (x) (equ? (make-from-mag-ang 0 0) x)))
+ 
+ (put '=zero? '(rectangular) 
+      (lambda (x) (equ? (make-from-real-imag 0 0) x)))
+ 
+ ;this will only work if the complex number is in rectangular form
+ (put '=zero? '(complex) 
+      (lambda (x) (equ? x (make-complex-from-real-imag 0 0))))
+ 
+ 'done)
+ 
+(install-zero?-package)
+ 
+(define (=zero? n)
+  (apply-generic '=zero? n))
+
+;for some reason (=zero? (make-rational 0 1)) is not working. Getting this error:
+;No method for these types -- APPLY-GENERIC (equ? (rational 0))
+
+;when this works: (equ? (make-rational 0 1) (make-rational 0 1))
+
+;This is because the tag is stripped off by apply-generic
+;and needs to be re-tagged
+;hmmm ... might be worth it to export denom and numer for use in the equ? and =zero? packages
+;so this isn't necessay
+
+;done!
+
+;2.5.2 Combining Data of Different types
+
+(define (add-complex-to-schemenum z x)
+  (make-from-real-imag (+ (real-part z) x)
+                       (imag-part z)))
+(put 'add '(complex scheme-number)
+     (lambda (z x) (tag (add-complex-to-schemenum z x))))
+
+;Coercion
+
+(define (scheme-number->complex n)
+  (make-complex-from-real-imag (contents n) 0))
+
+(define coercion-table (make-table))
+(define get-coercion (coercion-table 'lookup-proc))
+(define put-coercion (coercion-table 'insert-proc!))
+
+(put-coercion 'scheme-number 'complex scheme-number->complex)
+
+(define (apply-generic op . args)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (if proc
+          (apply proc (map contents args))
+          (if (= (length args) 2)
+              (let ((type1 (car type-tags))
+                    (type2 (cadr type-tags))
+                    (a1 (car args))
+                    (a2 (cadr args)))
+                (let ((t1->t2 (get-coercion type1 type2))
+                      (t2->t1 (get-coercion type2 type1)))
+                  (cond (t1->t2
+                         (apply-generic op (t1->t2 a1) a2))
+                        (t2->t1
+                         (apply-generic op a1 (t2->t1 a2)))
+                        (else
+                         (error "No method for these types"
+                                (list op type-tags))))))
+              (error "No method for these types"
+                     (list op type-tags)))))))
+
+(add 1 (make-complex-from-real-imag 1 2))
+
+;Exercise 2.81
+(define (scheme-number->scheme-number n) n)
+(define (complex->complex z) z)
+(put-coercion 'scheme-number 'scheme-number
+              scheme-number->scheme-number)
+(put-coercion 'complex 'complex complex->complex)
+
+(define (expo x y) (apply-generic 'exp x y))
+
+;a.
+;(expo (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2))
+;this appears to not terminate
+
+;The cond where it coerces calls apply-generic
+;again with the argument coerced to itself; the recursive
+;call still finds no matching procedure for the arguments
+;and continues to loop
+
+;b.
+(mul (make-rational 1 2) (make-rational 3 4))
+;works as is; Louis is right in that the coercion may happen
+;even if they have the same type, but this is only because
+;there is no operation defined for that combination of
+;types
+
+;c.
+(define (apply-generic op . args)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (if proc
+          (apply proc (map contents args))
+          (let ((type1 (car type-tags))
+                (type2 (cadr type-tags)))
+           (if (and (= (length args) 2)
+                    (not (equal? type1 type2)))
+              (let ((a1 (car args))
+                    (a2 (cadr args)))
+                (let ((t1->t2 (get-coercion type1 type2))
+                      (t2->t1 (get-coercion type2 type1)))
+                  (cond (t1->t2
+                         (apply-generic op (t1->t2 a1) a2))
+                        (t2->t1
+                         (apply-generic op a1 (t2->t1 a2)))
+                        (else
+                         (error "No method for these types"
+                                (list op type-tags))))))
+              (error "No method for these types"
+                     (list op type-tags))))))))
+
+(expo (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2))
+;works!
+
+;Exercise 2.82
+;from section 2.2
+(define (accumulate op initial sequence)
+  (if (null? sequence)
+      initial
+      (op (car sequence)
+          (accumulate op initial (cdr sequence)))))
+
+(define (apply-generic op . args)
+  
+  (define (all pred xlist)
+    (accumulate equal? 
+                true
+                (map (lambda (x) (pred x)) xlist)))
+  
+  (define (coercion-fns type type-tags)
+    (map (lambda (type2) 
+           (if (equal? type type2)
+               (lambda (x) x) ;identity             
+               (get-coercion type type2))) type-tags))
+  
+  (define (coercion-fns type type-tags)
+    (define (iter types fns) 
+      (let ((type2 (car types)))
+       (let ((fn (get-coercion type type2)))
+        (cond ((not fn) #f)
+              ((equal? type type2) 
+               (iter (cdr types) (append fns (list (lambda (x) x)))))
+              (else
+               (iter (cdr types) (append fns (list fn))))))))
+    (iter type-tags '()))
+  
+  (define (coerce-args type type-tags args)
+    (let ((coercions (coercion-fns type type-tags)))
+      (if coercions
+          (map apply coercions args))))
+  
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (if proc
+          (apply proc (map contents args))
+          (let ((type1 (car type-tags))
+                (type2 (cadr type-tags)))
+           (if (and (= (length args) 2)
+                    (not (equal? type1 type2)))
+              (let ((a1 (car args))
+                    (a2 (cadr args)))
+                (let ((t1->t2 (get-coercion type1 type2))
+                      (t2->t1 (get-coercion type2 type1)))
+                  (cond (t1->t2
+                         (apply-generic op (t1->t2 a1) a2))
+                        (t2->t1
+                         (apply-generic op a1 (t2->t1 a2)))
+                        (else
+                         (error "No method for these types"
+                                (list op type-tags))))))
+              (error "No method for these types"
+                     (list op type-tags))))))))
