@@ -203,7 +203,7 @@
 
 (define g-device (make-graphics-device (car (enumerate-graphics-types))))
 (outline a-frame)
-(graphics-clear g-device)
+;(graphics-clear g-device)
 
 ;b.  The painter that draws an ``X'' by connecting opposite 
 ;    corners of the frame.
@@ -217,9 +217,88 @@
 (x-painter a-frame)
 ;this is so cool
 
-
-
 ;c.  The painter that draws a diamond shape by connecting
 ;    the midpoints of the sides of the frame.
 
+(define mid-top (make-vect .5 1))
+(define mid-left (make-vect 0 .5))
+(define mid-bottom (make-vect .5 0))
+(define mid-right (make-vect 1 .5))
+
+(define (diamond frame)
+  ((segments->painter
+    (list (make-segment mid-left mid-top)
+          (make-segment mid-top mid-right)
+          (make-segment mid-right mid-bottom)
+          (make-segment mid-bottom mid-left)))
+   frame))
+
+(diamond a-frame)
+  
 ;d.  The wave painter.
+;laterz, man
+
+;Transforming and combining painters
+(define (transform-painter painter origin corner1 corner2)
+  (lambda (frame)
+    (let ((m (frame-coord-map frame)))
+      (let ((new-origin (m origin)))
+        (painter
+         (make-frame new-origin
+                     (sub-vect (m corner1) new-origin)
+                     (sub-vect (m corner2) new-origin)))))))
+
+(define (flip-vert painter)
+  (transform-painter painter
+                     (make-vect 0.0 1.0)   ; new origin
+                     (make-vect 1.0 1.0)   ; new end of edge1
+                     (make-vect 0.0 0.0))) ; new end of edge2
+
+(define (shrink-to-upper-right painter)
+  (transform-painter painter
+                     (make-vect 0.5 0.5)
+                     (make-vect 1.0 0.5)
+                     (make-vect 0.5 1.0)))
+
+(define (rotate90 painter)
+  (transform-painter painter
+                     (make-vect 1.0 0.0)
+                     (make-vect 1.0 1.0)
+                     (make-vect 0.0 0.0)))
+
+(define (squash-inwards painter)
+  (transform-painter painter
+                     (make-vect 0.0 0.0)
+                     (make-vect 0.65 0.35)
+                     (make-vect 0.35 0.65)))
+
+(define (beside painter1 painter2)
+  (let ((split-point (make-vect 0.5 0.0)))
+    (let ((paint-left
+           (transform-painter painter1
+                              (make-vect 0.0 0.0)
+                              split-point
+                              (make-vect 0.0 1.0)))
+          (paint-right
+           (transform-painter painter2
+                              split-point
+                              (make-vect 1.0 0.0)
+                              (make-vect 0.5 1.0))))
+      (lambda (frame)
+        (paint-left frame)
+        (paint-right frame)))))
+
+;Exercise 2.50 
+(define (flip-horiz painter) '())
+(define (rotate180 painter) '())
+(define (rotate270 painter) '())
+
+;Exercise 2.51
+(define (below painter1 painter2) '())
+
+;Exercise 2.52
+;a.
+
+;b.
+
+;c.
