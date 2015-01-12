@@ -1,27 +1,16 @@
 (define g-device (make-graphics-device (car (enumerate-graphics-types))))
 ;(graphics-draw-line g-device 0 0 5 5)
 
-(define close-g-device (graphics-close g-device))
+(define (close) (graphics-close g-device))
+(define (clear) (graphics-clear g-device))
 
 ;2.2.4 Example: A Picture Language
-
-(define wave2 (beside wave (flip-vert wave)))
-
-(define wave4 (below wave2 wave2))
-(define wave2 (beside wave (flip-vert wave)))
-
-(define wave4 (below wave2 wave2))
-
-(define wave2 
-  (define wave4
- 	(beside wave (flip-vert wave))) 
-  (below wave2 wave2))
+(define (identity x) x)
 
 (define (flipped-pairs painter)
   (let ((painter2 (beside painter (flip-vert painter))))
     (below painter2 painter2)))
 
- (define wave4 (flipped-pairs wave))
  
 (define (right-split painter n)
   (if (= n 0)
@@ -40,8 +29,6 @@
           (beside (below painter top-left)
                   (below bottom-right corner))))))
 
-(right-split wave 4) 
-(corner-split wave 4) 
 
 (define (square-limit painter n)
  (let ((quarter (corner-split painter n)))
@@ -203,7 +190,7 @@
 
 (define g-device (make-graphics-device (car (enumerate-graphics-types))))
 (outline a-frame)
-;(graphics-clear g-device)
+
 
 ;b.  The painter that draws an ``X'' by connecting opposite 
 ;    corners of the frame.
@@ -235,8 +222,10 @@
 
 (diamond a-frame)
   
-;d.  The wave painter.
-;laterz, man
+;d.  The wave painter. 
+(define (wave frame) '())
+;todo: make this thing
+(wave a-frame)
 
 ;Transforming and combining painters
 (define (transform-painter painter origin corner1 corner2)
@@ -289,12 +278,57 @@
         (paint-right frame)))))
 
 ;Exercise 2.50 
-(define (flip-horiz painter) '())
-(define (rotate180 painter) '())
-(define (rotate270 painter) '())
+(define (flip-horiz painter)
+  (transform-painter painter
+                     (make-vect 1.0 0.0)   ; new origin
+                     (make-vect 0.0 0.0)   ; new end of edge1
+                     (make-vect 1.0 1.0))) ; new end of edge2
+
+(define (rotate180 painter) 
+  (rotate90 (rotate90 painter)))
+
+(define (rotate270 painter) 
+  (rotate90 (rotate90 (rotate90 painter))))
 
 ;Exercise 2.51
-(define (below painter1 painter2) '())
+(define (below painter1 painter2)
+  (let ((split-point (make-vect 0.0 0.5)))
+    (let ((paint-below
+           (transform-painter painter1
+                              (make-vect 0.0 0.0)
+                              (make-vect 1.0 0.0)
+                              split-point
+                              ))
+          (paint-above
+           (transform-painter painter2
+                              split-point
+                              (make-vect 1.0 0.5)
+                              (make-vect 0.0 1.0)
+                              )))
+      (lambda (frame)
+        (paint-below frame)
+        (paint-above frame)))))
+
+(define diamond2 (below diamond diamond))
+
+;Examples from the start of the section:
+
+(right-split wave 4) 
+(corner-split wave 4) 
+
+(define wave2 (beside wave (flip-vert wave)))
+
+(define wave4 (below wave2 wave2))
+(define wave2 (beside wave (flip-vert wave)))
+
+(define wave4 (below wave2 wave2))
+
+(define wave4 (flipped-pairs wave))
+  (define wave4
+ 	(beside wave (flip-vert wave))) 
+
+(define wave2 
+  (below wave2 wave2))
 
 ;Exercise 2.52
 ;a.
