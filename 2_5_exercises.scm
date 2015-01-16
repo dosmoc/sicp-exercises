@@ -465,7 +465,7 @@
                      (list op type-tags))))))))
 
 (expo (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2))
-;works!
+;works! in that it raises an error if there is no method for those types
 
 ;Exercise 2.82
 ;from exercise 2.3
