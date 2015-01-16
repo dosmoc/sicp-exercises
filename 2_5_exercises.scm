@@ -468,60 +468,34 @@
 ;works!
 
 ;Exercise 2.82
-;from section 2.2
-(define (accumulate op initial sequence)
-  (if (null? sequence)
-      initial
-      (op (car sequence)
-          (accumulate op initial (cdr sequence)))))
-
-(define (apply-generic op . args)
-  
-  (define (all pred xlist)
-    (accumulate equal? 
-                true
-                (map (lambda (x) (pred x)) xlist)))
-  
-  (define (coercion-fns type type-tags)
-    (map (lambda (type2) 
-           (if (equal? type type2)
-               (lambda (x) x) ;identity             
-               (get-coercion type type2))) type-tags))
-  
-  (define (coercion-fns type type-tags)
-    (define (iter types fns) 
-      (let ((type2 (car types)))
-       (let ((fn (get-coercion type type2)))
-        (cond ((not fn) #f)
-              ((equal? type type2) 
-               (iter (cdr types) (append fns (list (lambda (x) x)))))
-              (else
-               (iter (cdr types) (append fns (list fn))))))))
-    (iter type-tags '()))
-  
-  (define (coerce-args type type-tags args)
-    (let ((coercions (coercion-fns type type-tags)))
-      (if coercions
-          (map apply coercions args))))
-  
+(define (apply-generic op . args)  
   (let ((type-tags (map type-tag args)))
     (let ((proc (get op type-tags)))
       (if proc
           (apply proc (map contents args))
           (let ((type1 (car type-tags))
-                (type2 (cadr type-tags)))
-           (if (and (= (length args) 2)
-                    (not (equal? type1 type2)))
-              (let ((a1 (car args))
-                    (a2 (cadr args)))
-                (let ((t1->t2 (get-coercion type1 type2))
-                      (t2->t1 (get-coercion type2 type1)))
-                  (cond (t1->t2
-                         (apply-generic op (t1->t2 a1) a2))
-                        (t2->t1
-                         (apply-generic op a1 (t2->t1 a2)))
-                        (else
-                         (error "No method for these types"
-                                (list op type-tags))))))
-              (error "No method for these types"
-                     (list op type-tags))))))))
+                (a1 (car args))
+                (rest-args (cdr args)))
+            (let ((coerced (map (lambda (arg) (get-coercion type1 (type-tag arg))) 
+                                 rest-args)))
+              (cond ((all-coerced? coerced)
+                     (apply apply-generic (cons op (cons a1 coerced))))
+                    (else
+                     (apply apply-generic (cons op (append rest-args (list a1))))))))))))
+
+(define (apply-generic op . args)
+  (define (coerce-args types)
+    (let ((current-type (car types)))
+      (if (not (null? current-type))
+          (let ((coerced (map (lambda (arg) ((get-coercion current-type (type-tag arg)) arg)))))
+            (if (all-coerced? coerced)
+                (apply (apply-generic (cons op coerced)))
+                (coerce-args (cdr types))))
+          (error "No method for these types"))))
+  
+  (let ((type-tags (map type-tag args)))
+   (let ((proc (get op type-tags)))
+     (if proc
+         (apply proc (map contents args))
+         (apply apply-generic 
+                (cons op (coerce-args (list->set type-tags))))))))
