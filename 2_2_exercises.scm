@@ -903,36 +903,96 @@
 
 
 ;Exercise 2.42.  
-(define (adjoin-position new-row k rest-of-queens)
-  (cons (list new-row k) rest-of-queens))
+(define (make-position col row)
+  (cons col row))
 
-(define (row-position pos) (car pos))
+(define (col-position pos) (car pos))
 
-(define (col-position pos) (cadr pos))
+(define (row-position pos) (cdr pos))
+
+(define (adjoin-position row col rest-of-queens)
+  (cons (make-position col row) rest-of-queens))
 
 (define (all-true? bool-list)
   (accumulate (lambda (a b) (and a b)) true bool-list))
 
 (define (safe-vert? k positions)
-  (all-true? (map (lambda (pos) (not (= (row-position pos) k))) 
+  (all-true? (map (lambda (pos) (not (= (col-position pos) k))) 
                   positions)))
 
+(define (inc x) (+ x 1))
+
+(define (dec x) (- x 1))
+
+(define (identity x) x)
+
+(define (collinear? a b c)
+  (define (mul-diff x y z)
+    (* x (- y z)))
+  
+  (= 0
+     (+ (mul-diff (col-position a) (row-position b) (row-position c))
+        (mul-diff (col-position b) (row-position c) (row-position a))
+        (mul-diff (col-position c) (row-position a) (row-position b)))))
+
+;after banging head on wall, realized that
+;the position is already adjoined, and we're filtering entire
+;sets of boards where the current k is not safe
+
+;assuming adjoin-position always puts the position first,
+;you don't even need to know which k you are on given a row of positions
+(define (safe-checker col-fn row-fn)
+  (lambda (k positions)
+    (let ((curr-pos (car positions))
+          (rest-pos (cdr positions)))
+      (let ((check-pos (make-position (col-fn (col-position curr-pos)) 
+                                      (row-fn (row-position curr-pos)))))
+       (all-true? (map (lambda (pos) (not (collinear? curr-pos check-pos pos)))
+                       rest-pos))))))
+
+;but I guess the intent for safe? is that you can't necessarily assume
+;this is true... so you'd have to access checked position by scanning for k
+;and the rest of the positions
+
+;something like
+(define (position-at k positions)
+  (let ((curr-pos (car positions)))
+    (if (= k (col-position curr-pos))
+        curr-pos
+        (position-at k (cdr positions)))))
+
+(define (minus-column k positions)
+  (filter (lambda (pos) (not (= k (col-position pos)))) positions))
+
+(define (safe-checker col-fn row-fn)
+  (lambda (k positions)
+    (let ((curr-pos (position-at k positions))
+          (rest-pos (minus-column k positions)))
+      (let ((check-pos (make-position (col-fn (col-position curr-pos)) 
+                                      (row-fn (row-position curr-pos)))))
+       (all-true? (map (lambda (pos) (not (collinear? curr-pos check-pos pos)))
+                       rest-pos))))))
+;there is probably a better way to check if two positions are on the 
+;same diagonal / horizontal, but my old version wasn't working and I hit on 
+;this
+
+;but now that I think of it, the fact that I was testing a position against
+;itself and vertically instead of horizontally probably had more to 
+;do with it
+
+(define (safe-horiz? k positions)
+  ((safe-checker inc identity) k positions))
+
 (define (safe-r-diag? k positions)
-  (let (k-row (length positions))
-    (all-true? (map (lambda (pos)
-                      (not (= (col-position pos) 
-                              ((+ k (- k-row (row-position pos)))))))
-                    positions))))
+  ((safe-checker inc inc) k positions))
 
 (define (safe-l-diag? k positions)
-  (let (k-row (length positions))
-    (all-true? (map (lambda (pos)
-                      (not (= k (- (+ k-row (row-position pos)) 
-                                   (col-position pos)))))
-                    positions))))
+  ((safe-checker dec inc) k positions))
+
+(define empty-board nil)
 
 (define (safe? k positions)
-  (and (safe-vert? k positions) 
+  (and (safe-horiz? k positions) 
        (safe-l-diag? k positions) 
        (safe-r-diag? k positions)))
 
@@ -950,10 +1010,3 @@
           (queen-cols (- k 1))))))
   (queen-cols board-size))
 
-(define (safe? k postions))
-
-(define (adjoin-position r k positions rest-of-queens))
-
-(define empty-board (list (list)))
-
-;uuugh
