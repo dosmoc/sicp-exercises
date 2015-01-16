@@ -468,20 +468,31 @@
 ;works!
 
 ;Exercise 2.82
-(define (apply-generic op . args)  
-  (let ((type-tags (map type-tag args)))
-    (let ((proc (get op type-tags)))
-      (if proc
-          (apply proc (map contents args))
-          (let ((type1 (car type-tags))
-                (a1 (car args))
-                (rest-args (cdr args)))
-            (let ((coerced (map (lambda (arg) (get-coercion type1 (type-tag arg))) 
-                                 rest-args)))
-              (cond ((all-coerced? coerced)
-                     (apply apply-generic (cons op (cons a1 coerced))))
-                    (else
-                     (apply apply-generic (cons op (append rest-args (list a1))))))))))))
+;from exercise 2.3
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((equal? x (car set)) true)
+        (else (element-of-set? x (cdr set)))))
+
+(define (adjoin-set x set)
+  (if (element-of-set? x set)
+      set
+      (cons x set)))
+
+(define (accumulate op initial sequence)
+  (if (null? sequence)
+      initial
+      (op (car sequence)
+          (accumulate op initial (cdr sequence)))))
+
+(define (list->set a-list)
+  (accumulate (lambda (x set) (adjoin-set x set)) '() a-list))
+
+(define (all-true? bool-list)
+  (accumulate (lambda (a b) (and a b)) true bool-list))
+
+(define (all-coerced? val-list)
+  (all-true? val-list))
 
 (define (apply-generic op . args)
   (define (coerce-args types)
