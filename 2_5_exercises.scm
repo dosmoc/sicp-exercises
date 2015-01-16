@@ -496,13 +496,13 @@
 
 (define (apply-generic op . args)
   (define (coerce-args types)
-    (let ((current-type (car types)))
-      (if (not (null? current-type))
-          (let ((coerced (map (lambda (arg) ((get-coercion current-type (type-tag arg)) arg)))))
+    (if (not (null? types))
+        (let ((current-type (car types)))
+          (let ((coerced (map (lambda (arg) ((get-coercion current-type (type-tag arg)) arg)) args)))
             (if (all-coerced? coerced)
-                (apply (apply-generic (cons op coerced)))
-                (coerce-args (cdr types))))
-          (error "No method for these types"))))
+	            (apply (apply-generic (cons op coerced)))
+	            (coerce-args (cdr types)))))
+        (error "No method for these types")))
   
   (let ((type-tags (map type-tag args)))
    (let ((proc (get op type-tags)))
@@ -510,3 +510,9 @@
          (apply proc (map contents args))
          (apply apply-generic 
                 (cons op (coerce-args (list->set type-tags))))))))
+
+(mul (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2))
+;works!
+(expo (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2))
+;raises the correct error!
+
