@@ -1010,3 +1010,32 @@
           (queen-cols (- k 1))))))
   (queen-cols board-size))
 
+;uuugh
+;appears to work
+(for-each (lambda (board) (display board) (newline)) (queens 4))
+
+;Exercise 2.43
+;Louis Reasoner's change:
+;(flatmap
+; (lambda (new-row)
+;   (map (lambda (rest-of-queens)
+;          (adjoin-position new-row k rest-of-queens))
+;        (queen-cols (- k 1))))
+; (enumerate-interval 1 board-size))
+
+;This turns the the queens-cols procedure from a linear recursion
+;process into an exponential recursive process.
+;
+;The original:
+; t(0) = 0
+; t(k) = time-filter + time-map(board-size) + t(k - 1)
+; which is linear
+
+; Whereas flipping makes it something like
+; t(k) = kt(k - 1) 
+; since a call to queens-col is mapped against (k - 1)
+; it turns it into a true recursion where the number of branches grows
+; with k... which seems pretty bad
+
+; I'm not sure how you put this in terms of T of the original
+; version
