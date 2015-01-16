@@ -142,7 +142,8 @@
 
 (define (offset-point p offset)
   (let ((x2 (+ (numer offset) (x-point p)))
-        (y2 (+ (denom offset) (y-point p))))))
+        (y2 (+ (denom offset) (y-point p))))
+    (make-point x2 y2)))
 
 (define (offset-segment s offset)
   (let ((start (offset-point (start-segment s)))
@@ -297,8 +298,8 @@
 
 (define (make-interval a b) (cons a b))
 
-;Define selectors upper-bound and lower-bound to complete the implementation
-
+;Define selectors upper-bound and lower-bound to complete the 
+;implementation
 (define (upper-bound i) (cdr i))
 (define (lower-bound i) (car i))
 
@@ -312,11 +313,45 @@
 (define (width-interval i)
   (/ (- (upper-bound i) (lower-bound i)) 2))
 
-(width-interval 
-  (add-interval (make-interval 1 3) (make-interval 2 5)))
+(define i1 (make-interval 1 3))
+(define i2 (make-interval 2 5))
+(define i3 (make-interval 3 5))
+(define i4 (make-interval 4 5))
+
+(width i1)
+;1
 
 (width-interval 
- (sub-interval (make-interval 1 3) (make-interval 2 5)))
+  (add-interval i1 i2))
+;sum: 5/2
+(width i2) ;3/2
+
+(width-interval 
+  (add-interval i1 i3))
+;sum 4/2
+(width i3) ;1
+
+(width-interval 
+  (add-interval i1 i4))
+;sum: 3/2
+(width i4) ;1/2
+
+; width of sum = width ix + width iy
+; 5/2 = 2/2 + 3/2
+; 4/2 = 2/2 + 2/2
+; 3/2 = 2/2 + 1/2 
+
+(width-interval 
+  (mul-interval i1 i2))
+;13/2
+(width-interval 
+  (mul-interval i1 i3))
+;6
+(width-interval 
+  (mul-interval i1 i4))
+;11/2 
+
+;...hmmm
 
 ;Exercise 2.10
 (define (div-interval x y)
@@ -333,8 +368,8 @@
      (error "Interval " y " spans zero -- DIV-INTERVAL")
      (div-i x y)))
 
-
-;Exercise 2.10
+;Exercise 2.11
+;original def
 (define (mul-interval x y)
   (let ((p1 (* (lower-bound x) (lower-bound y)))
         (p2 (* (lower-bound x) (upper-bound y)))
@@ -347,9 +382,6 @@
 (define (neg? x) (> 0 x))
 
 (define (pos? x) (< 0 x))
-
-
-;Exercise 2.11
 
 ;(define (mul-interval x y)
 ;  (let ((s-x-upper (pos? (upper-bound x)))
