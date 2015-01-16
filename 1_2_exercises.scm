@@ -808,6 +808,28 @@
 
 ;is this a rule of thumb? iterative processes must only call
 ;the procedure once to be iterative, as that makes another branch
+;the original:
+(define (expmod base exp m)
+  (cond ((= exp 0) 1)
+        ((even? exp)
+         (remainder (square (expmod base (/ exp 2) m))
+                    m))
+        (else
+         (remainder (* base (expmod base (- exp 1) m))
+                    m))))  
+
+; informal instinctive orders of growth:
+; lets consider t to be number of operations:
+; t(0) = 1
+; even?, square is one primitive multiplication, /, remainder
+; t(n) =  4 + t(n / 2) where n > 0 and n is even
+; t(n) = 3 + t(n - 1) where n > 0 and n is odd... which turns out
+; to be t(n) = 7 + t(n / 2) so still logarithmic since
+; is divided in half each iteration
+
+;so explicitly multiplying expmod-lr means that the time to 
+;calculate expmod-lr
+
 (define (expmod-lr base exp m)
   (cond ((= exp 0) 1)
         ((even? exp)
@@ -817,6 +839,21 @@
         (else
          (remainder (* base (expmod-lr (- exp 1) m))
                     m))))
+
+; informal instinctive orders of growth:
+; lets consider time to be number of primitive operations:
+; t(0) = 1
+; even?, square is one primitive multiplication, /, remainder
+; t(n) = 4 + t(n / 2) + t(n / 2) where n > 0 and n is even
+; t(n) = 4 + t((n / 2) + (n / 2))
+; t(n) = 4 + t(2n / 2) = t(n)
+; but I got this by making the algebra fit the (known)
+; answer here
+
+
+;Most answers I've found online explain it graphically or
+;using tables. What I want is a way to algebraically manipulate
+;orders of growth so I don't have to draw graphs each time
 
 ;Exercise 1.27
 ;carmichaels are: 561, 1105, 1729, 2465, 2821, 6601
