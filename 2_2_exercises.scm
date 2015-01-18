@@ -1027,7 +1027,7 @@
 ;process into an exponential recursive process.
 ;
 ;The original:
-; t(0) = 0
+; t(0) = 1 (the equals primitive)
 ; t(k) = time-filter + time-map(board-size) + t(k - 1)
 ; which is linear
 
@@ -1035,7 +1035,10 @@
 ; t(k) = kt(k - 1) 
 ; since a call to queens-col is mapped against (k - 1)
 ; it turns it into a true recursion where the number of branches grows
-; with k... which seems pretty bad
+; with k... which seems pretty bad.
+; I erased this one, but my guess is O(n^n)... if Fibonnaci is is O(2^n)
+; because it makes two recursive calls, this one makes a recursive call
+; for each increase in k.
 
 ; I'm not sure how you put this in terms of T of the original
 ; version
