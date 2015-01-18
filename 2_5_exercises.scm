@@ -148,7 +148,7 @@
  ((get 'make 'scheme-number) n))
 
 (define (install-rational-package)
-  ;; internal procedures
+  ;; internal proceduresnumer
   (define (numer x) (car x))
   (define (denom x) (cdr x))
   (define (make-rat n d)
@@ -190,16 +190,18 @@
        (lambda (n d) (tag (make-rat n d))))
   
   ;added for Exercise 2.79
-  (put '= 'rational equal-rat?)
+  (put '= '(rational) equal-rat?)
   
   ;added for Exercise 2.80
-  (put 'denom 'rational denom)
-  (put 'numer 'rational numer)
+  (put 'denom '(rational) denom)
+  (put 'numer '(rational) numer)
 
   'done)
 
 (define (make-rational n d)
   ((get 'make 'rational) n d))
+
+
 
 (define (install-complex-package)
   ;; imported procedures from rectangular and polar packages
@@ -271,13 +273,11 @@
 (define (attach-tag type-tag contents) 
   (cond ((number? contents) contents)
         (else (cons type-tag contents))))
-
 (define (type-tag datum) 
   (cond ((number? datum) 'scheme-number)
         ((pair? datum) (car datum))
         (else
           (error "Bad tagged datum -- TYPE-TAG" datum))))
-
 (define (contents datum) 
   (cond ((number? datum) datum)
         ((pair? datum) (cdr datum))
@@ -516,3 +516,87 @@
 (expo (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2))
 ;raises the correct error!
 
+;This won't work simply on mixed-type operations that aren't 
+;retrieved by (get op (type-tags)) where types are not in the
+;same order as in the operation table. 
+
+;Exercise 2.83
+; Unless I'm horribly mistaken, we don't have a real package yet
+; This is kind of what bothers me, though. What I've read 
+; about reals is that the representation from rational -> real
+; shouldn't necessarily change. Some SICP answers seem to
+; make real numbers as a conversion from exact->inexact
+; but for now, I'm just considering a real number as any
+; exact or inexact number tagged with 'real
+(define (install-real-package)
+  (define (tag x)
+    (attach-tag 'real x)) 
+  
+  (put 'make 'real
+       (lambda (x) (tag x)))
+  
+  ;the real part is just the contents,
+  ;we need this to raise real numbers
+  (put 'real-part '(real) contents)
+  
+  'done)
+
+
+(define (make-real n)
+  ((get 'make 'real) n))
+
+
+(install-real-package)
+
+(define (install-raise-operations)
+  (define (numer n)
+    ((get 'numer '(rational)) n))
+  
+  (define (denom n)
+    ((get 'denom '(rational)) n))
+  
+  (define (real-part n)
+    ((get 'real-part '(real)) n))
+  
+  (define (make-complex-from-real-imag x y)
+  	((get 'make-from-real-imag 'complex) x y))
+  
+  (put 'raise '(scheme-number)
+       (lambda (n) (make-rational n 1)))
+  (put 'raise '(rational)
+       (lambda (n) (make-real (/ (numer n) (denom n)))))
+  (put 'raise '(real)
+       (lambda (n) (make-complex-from-real-imag (real-part n) 0)))
+  'done)
+
+(install-raise-operations)
+
+(define (raise n)
+  (apply-generic 'raise n))
+
+(define (denom n)
+  (apply-generic 'denom n))
+
+(define (numer n)
+  (apply-generic 'numer n))
+
+(get 'denom '(rational))
+(get 'numer '(rational))
+
+(type-tag (raise 1))
+;rational
+
+(type-tag (raise (raise 1)))
+;scheme-number
+;crap!
+;because the contents of make-real
+;is a number, the type-tag procedure
+;considers this a scheme-number
+
+(define (attach-tag type-tag contents) 
+  (cond ((and (not (equal? type-tag 'real))
+              (number? contents)) contents)
+        (else (cons type-tag contents))))
+
+(raise (raise (raise 1)))
+;(complex rectangular 1 . 0) allright!
