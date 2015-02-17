@@ -647,6 +647,8 @@
 (get 'denom '(rational))
 (get 'numer '(rational))
 
+(raise (raise (make-rational 1 2)))
+
 (type-tag (raise 1))
 ;rational
 
@@ -656,11 +658,142 @@
 ;because the contents of make-real
 ;is a number, the type-tag procedure
 ;considers this a scheme-number
-
 (define (attach-tag type-tag contents) 
   (cond ((and (not (equal? type-tag 'real))
               (number? contents)) contents)
         (else (cons type-tag contents))))
 
+(raise 1)
+;(rational 1 . 1)
+(raise (raise 1))
+;(real . 1)
 (raise (raise (raise 1)))
 ;(complex rectangular 1 . 0) allright!
+
+;2.84
+(define lowest-type 1)
+(define lowest-type-tag (type-tag lowest-type))
+
+(define (add-higher-type n types)
+  (let ((raise-fn (get 'raise (list (car types)))))
+    (if raise-fn
+        (let ((raised (raise-fn (contents n))))
+          (add-higher-type raised (cons (type-tag raised) types)))
+        types)))
+
+(define (get-higher-types n)
+  (add-higher-type n (list (type-tag n))))
+
+;doing it this way means that if new types are added to
+;the tower, they will always be included in the tower;
+;however, this means that the tower is recalculated each time
+;a value needs to be raised
+(define (type-tower-list) (get-higher-types lowest-type))
+
+;defining it this way:
+;(define type-tower (get-higher-types 1))
+;(define (type-tower-list) type-tower)
+;means that the type tower is only calculated once, but means
+;that dynamically adding types to the tower is not possible
+;with re-definining type-tower
+;I'm not sure which is better, but abstraction of the 
+;type tower as a function allows for the decision to be
+;made without affecting the higher-type-of function
+(define (inc x) (+ x 1))
+
+(define (index-of s alist)
+  (define (count-cars count current-list)
+    (cond ((null? current-list) (error "Item not found"))
+          ((equal? (car current-list) s) count)
+          (else (count-cars (inc count) (cdr current-list)))))
+  (count-cars 0 alist))
+
+(define (higher-type-of type1 type2)
+  (cond ((< (index-of type1 (type-tower-list))
+            (index-of type2 (type-tower-list))) type1)
+	    ((> (index-of type1 (type-tower-list))
+	        (index-of type2 (type-tower-list))) type2)
+        (else type1)))
+
+(define (highest-type-in-list types)
+  (accumulate (lambda (type current-type) (higher-type-of type current-type)) 
+              lowest-type-tag
+              types))
+
+(define (successive-raise n type)
+  (if (equal? (type-tag n) type)
+      n
+      (successive-raise (raise n) type)))
+
+(define (raise-all args type)
+  (map (lambda (arg) (successive-raise arg type)) args))
+
+(successive-raise 1 'complex)
+
+(successive-raise (make-complex-from-real-imag 1 2) 'complex)
+
+(define (apply-generic op . args)
+  (define (coerce-args types)
+    (raise-all args (highest-type-in-list types)))
+  
+  (let ((type-tags (map type-tag args)))
+   (let ((proc (get op type-tags)))
+     (if proc
+         (apply proc (map contents args))
+         (if (not (all-same? type-tags))
+             (apply apply-generic 
+                    (cons op (coerce-args (list->set type-tags))))
+          	 (error "No method for these types"))))))
+
+(mul 4 (make-rational 1 2))
+;(rational 2 . 1)
+;works!
+
+(mul 4 (make-complex-from-real-imag 1 3))
+;also works!
+
+;Exercise 2.85
+(define (project n)
+  (apply-generic 'project n))
+
+;I realize it makes more sense to put these functions
+;in their relative type packages, but putting them all 
+;in one place for convenience right now
+(define (install-project-operations)
+  (define (numer n)
+    ((get 'numer '(rational)) n))
+  
+  (define (denom n)
+    ((get 'denom '(rational)) n))
+  
+  (put 'project '(rational)
+       (lambda (n) (make-scheme-number (/ (numer n) (denom n)))))
+  (put 'project '(real)
+       (lambda (n) (make-rational (real-part n) 1)))
+  (put 'project '(complex)
+       (lambda (n) (make-real (real-part n))))
+
+  'done)
+
+
+(define (drop n)
+  (let ((projected (project n)))
+    (if (equ? n (raise projected))
+	    (drop projected)
+	    n)))
+
+(define (apply-generic op . args)
+  (define (coerce-args types)
+    (if (not (null? types))
+        (let ((highest-type (highest-type-in-list types)))
+          (let ((raised (map (lambda (arg) (successive-raise arg highest-type)) args)))
+            (apply (apply-generic (cons op coerced)))))
+        (error "No method for these types")))
+
+  (drop
+    (let ((type-tags (map type-tag args)))
+     (let ((proc (get op type-tags)))
+       (if proc
+           (apply proc (map contents args))
+           (apply apply-generic 
+                  (cons op (coerce-args (list->set type-tags)))))))))
