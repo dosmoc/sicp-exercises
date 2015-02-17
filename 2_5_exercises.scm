@@ -537,6 +537,53 @@
 ;retrieved by (get op (type-tags)) where types are not in the
 ;same order as in the operation table. 
 
+;I want to do a version that doesn't get the coercion and coerce at
+;the same time
+
+;changing the behavior of appy-generic then simply becomes a question
+;of defining how to coerce all arguments, and a test to consider 
+;it successful
+(define (all-same? items)
+    (all-true? (map (lambda (x) (equal? x (car items))) (cdr items))))
+
+(define (apply-generic op . args)
+   
+  (define (get-coercion-to type)
+    (lambda (arg)
+      (get-coercion (type-tag arg) type)))
+  
+  (define (found-all-coercions? fns)
+    (all-true? fns))
+  
+  (define (coerce-all fns args)
+    (if (null? fns)
+        '()
+        (let ((fn (car fns))
+              (arg (car args)))
+          (cons (fn arg) (coerce-all (cdr fns) (cdr args))))))
+  
+  (define (coerce-args types)
+    (if (not (null? types))
+        (let ((current-type (car types)))
+          (let ((coercion-fns (map (get-coercion-to current-type) args)))
+            (if (found-all-coercions? coercion-fns)
+	            (coerce-all coercion-fns args)
+	            (coerce-args (cdr types)))))
+        (error "No method for these types" )))
+  
+  (let ((type-tags (map type-tag args)))
+   (let ((proc (get op type-tags)))
+     (if proc
+         (apply proc (map contents args))
+         (if (not (all-same? type-tags))
+             (apply apply-generic 
+                    (cons op (coerce-args (list->set type-tags))))
+          	 (error "No method for these types"))))))
+
+(mul (make-complex-from-real-imag 1 2) 1)
+;works!
+
+
 ;Exercise 2.83
 ; Unless I'm horribly mistaken, we don't have a real package yet
 ; This is kind of what bothers me, though. What I've read 
