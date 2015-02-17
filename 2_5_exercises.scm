@@ -431,7 +431,7 @@
 ;The cond where it coerces calls apply-generic
 ;again with the argument coerced to itself; the recursive
 ;call still finds no matching procedure for the arguments
-;and continues to loop
+;and continues to call itself
 
 ;b.
 (mul (make-rational 1 2) (make-rational 3 4))
@@ -585,7 +585,7 @@
 
 
 ;Exercise 2.83
-; Unless I'm horribly mistaken, we don't have a real package yet
+; Unless I'm horribly mistaken, we don't have a package for reals yet
 ; This is kind of what bothers me, though. What I've read 
 ; about reals is that the representation from rational -> real
 ; shouldn't necessarily change. Some SICP answers seem to
