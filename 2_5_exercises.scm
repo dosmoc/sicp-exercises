@@ -494,28 +494,45 @@
 (define (all-coerced? val-list)
   (all-true? val-list))
 
+(define (identity x) x)
+
+(define (coerce-to type)
+  (lambda (arg)
+    (let ((arg-type (type-tag arg))) 
+     (let ((proc (get-coercion arg-type type))) 
+      (cond ((equal? arg-type type) arg)
+            (proc (proc arg))
+            (else #f))))))
+
+;redo
 (define (apply-generic op . args)
+  (define (all-same? items)
+    (all-true? (map (lambda (x) (equal? x (car items))) (cdr items))))
+  
   (define (coerce-args types)
     (if (not (null? types))
         (let ((current-type (car types)))
-          (let ((coerced (map (lambda (arg) ((get-coercion current-type (type-tag arg)) arg)) args)))
+          (let ((coerced (map (coerce-to current-type) args)))
             (if (all-coerced? coerced)
-	            (apply (apply-generic (cons op coerced)))
+	            coerced
 	            (coerce-args (cdr types)))))
-        (error "No method for these types")))
+        (error "No method for these types" )))
   
   (let ((type-tags (map type-tag args)))
    (let ((proc (get op type-tags)))
      (if proc
          (apply proc (map contents args))
-         (apply apply-generic 
-                (cons op (coerce-args (list->set type-tags))))))))
+         (if (not (all-same? type-tags))
+             (apply apply-generic 
+                    (cons op (coerce-args (list->set type-tags))))
+          	 (error "No method for these types"))))))
 
-(mul (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2))
-;works!
-(expo (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2))
+;lets add a coercion to test
+(mul (make-complex-from-real-imag 1 2) (make-rational 1 2))
 ;raises the correct error!
-
+(expo (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2))
+;raises the correct error!
+(mul (make-complex-from-real-imag 1 2) 1)
 ;This won't work simply on mixed-type operations that aren't 
 ;retrieved by (get op (type-tags)) where types are not in the
 ;same order as in the operation table. 
