@@ -794,12 +794,7 @@
 (define (project n)
   (apply-generic 'project n))
 
-;this definition causes infinite recursion
-;when used inside apply-generic
-;because it uses generic operations
-;
-;There's probably a way to do this without causing infinite
-;recursion, but I'm calling it quits for now
+
 (define (drop n)
   (if (and (not (equal? lowest-type-tag (type-tag n))))
    (let ((projected (project n)))
