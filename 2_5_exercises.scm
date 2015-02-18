@@ -761,10 +761,10 @@
 
 (mul 4 (make-complex-from-real-imag 1 3))
 ;also works!
-
+(mul (make-rational 1 1) (make-rational 1 2))
+;(rational 1 . 1)
 ;Exercise 2.85
-(define (project n)
-  (apply-generic 'project n))
+
 
 ;I realize it makes more sense to put these functions
 ;in their relative type packages, but putting them all 
@@ -776,34 +776,73 @@
   (define (denom n)
     ((get 'denom '(rational)) n))
   
+  (define (real-part-of-real n)
+    ((get 'real-part '(real)) n))
+
+  ;hint from footnote 53
   (put 'project '(rational)
-       (lambda (n) (make-scheme-number (/ (numer n) (denom n)))))
+       (lambda (n) (make-scheme-number (round (/ (numer n) (denom n))))))
   (put 'project '(real)
-       (lambda (n) (make-rational (real-part n) 1)))
+       (lambda (n) (make-rational (round n) 1)))
   (put 'project '(complex)
        (lambda (n) (make-real (real-part n))))
 
   'done)
 
+(install-project-operations)
 
+(define (project n)
+  (apply-generic 'project n))
+
+;this definition causes infinite recursion
+;when used inside apply-generic
+;because it uses generic operations
+;
+;There's probably a way to do this without causing infinite
+;recursion, but I'm calling it quits for now
 (define (drop n)
-  (let ((projected (project n)))
+  (if (and (not (equal? lowest-type-tag (type-tag n))))
+   (let ((projected (project n)))
     (if (equ? n (raise projected))
 	    (drop projected)
-	    n)))
+	    n))
+   n))
+
+(drop (make-real 1))
+;1
+(drop (make-complex-from-real-imag 1 2))
+;(complex rectangular 1 . 2)
+(drop (make-complex-from-real-imag 1 0))
+;1
+(drop (make-rational 2 2))
+;1
+(drop 1)
+;1
+(drop (mul 2 (make-complex-from-real-imag 2 0)))
+;4
+
+
+(define (coerce-args args types)
+  (raise-all args (highest-type-in-list types)))
+
+(define dropable '(mul div sub add exp))
 
 (define (apply-generic op . args)
-  (define (coerce-args types)
-    (if (not (null? types))
-        (let ((highest-type (highest-type-in-list types)))
-          (let ((raised (map (lambda (arg) (successive-raise arg highest-type)) args)))
-            (apply (apply-generic (cons op coerced)))))
-        (error "No method for these types")))
+  (let ((type-tags (map type-tag args)))
+  	 (let ((proc (get op type-tags)))
+    	 (if proc
+          	 ;need to test if the op is dropable because
+             ;it makes no sense to try to drop the results 
+             ;of functions that map to non numeric values
+             (if (not (memq op dropable))
+                 (apply proc (map contents args))
+           		 (drop (apply proc (map contents args))))
+        	 (if (not (all-same? type-tags))
+            	 (apply apply-generic 
+            	        (cons op (coerce-args args (list->set type-tags))))
+          		 (error "No method for these types"))))))
 
-  (drop
-    (let ((type-tags (map type-tag args)))
-     (let ((proc (get op type-tags)))
-       (if proc
-           (apply proc (map contents args))
-           (apply apply-generic 
-                  (cons op (coerce-args (list->set type-tags)))))))))
+(mul (make-rational 1 2) (make-rational 1 2))
+;(rational 1 . 4)
+(mul 1 (make-rational 2 2))
+;(scheme-number 1))
