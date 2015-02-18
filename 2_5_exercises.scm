@@ -288,39 +288,44 @@
 
 (define (install-equ-package)
  
- ;import these parts
- (define (magnitude n)
-   ((get 'magnitude '(polar)) n)) 
- (define (angle n)
-   ((get 'angle '(polar)) n))
- (define (real-part n)
-   ((get 'real-part '(polar)) n))
- (define (imag-part n)
-   ((get 'imag-part '(polar)) n))
+ (define (denom n)
+   ((get 'denom '(rational)) n))
+ (define (numer n)
+   ((get 'numer '(rational)) n))
+ 
+ (define (equ-rational? r1 r2)
+   (= (/ (numer r1) (denom r1)) 
+      (/ (numer r2) (denom r2))))
  
  (define (equ? n m)
    (apply-generic 'equ? n m))
  
- (define (equ-polar? n m) 
-   (and (= (magnitude n) (magnitude m))
-        (= (angle n) (angle m))))
- 
- (define (equ-rectangular? n m) 
+ (define (equ-complex? n m) 
    (and (= (real-part n) (real-part m))
         (= (imag-part n) (imag-part m))))
  
  (put 'equ? '(scheme-number scheme-number) =)
- (put 'equ? '(rational rational) (get '= 'rational))
- (put 'equ? '(polar polar) equ-polar?)
- (put 'equ? '(rectangular rectangular) equ-rectangular?)
+ (put 'equ? '(rational rational) equ-rational?)
+ (put 'equ? '(real real) =)
+ ;(put 'equ? '(polar polar) equ-polar?)
+ ;(put 'equ? '(rectangular rectangular) equ-rectangular?)
  ;will this work?
- (put 'equ? '(complex complex) equ?)
+ (put 'equ? '(complex complex) equ-complex?)
  'done)
 
 (install-equ-package)
 
 (define (equ? n m)
   (apply-generic 'equ? n m))
+
+;test
+(equ? 1 1)
+;#t
+(equ? (make-rational 1 2) (make-rational 2 4))
+;#t
+(equ? (make-rational 1 2) (make-rational 2 4.0))
+;#t
+
 
 ;there's a problem with using equal? in the rational equality check
 ;in the (equal? 0 0.0) -> #f
@@ -602,6 +607,9 @@
   ;the real part is just the contents,
   ;we need this to raise real numbers
   (put 'real-part '(real) contents)
+  
+  (put 'equ? '(real real) =)
+
   
   'done)
 
