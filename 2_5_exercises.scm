@@ -677,6 +677,7 @@
 ;(real . 1)
 (raise (raise (raise 1)))
 ;(complex rectangular 1 . 0) allright!
+(raise (raise (raise (raise 1))))
 
 ;2.84
 (define lowest-type 1)
@@ -728,10 +729,11 @@
               lowest-type-tag
               types))
 
-(define (successive-raise n type)
-  (if (equal? (type-tag n) type)
+(define (successive-raise n raise-to)
+  (let ((type-n (type-tag n))) 
+    (if (equal? type-n raise-to)
       n
-      (successive-raise (raise n) type)))
+      (successive-raise (raise n) raise-to))))
 
 (define (raise-all args type)
   (map (lambda (arg) (successive-raise arg type)) args))
