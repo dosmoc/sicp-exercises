@@ -683,7 +683,8 @@ z2
          (set-front-ptr! deque (dl-cdr (front-ptr deque)))
          deque))) 
 
-;these look near exactly the same as with a queue
+;these look really similar to the operations and queue
+
 
 (define (front-insert-deque! deque item)
   (let ((new-pair (make-dl-node item '() '())))
@@ -704,8 +705,16 @@ z2
          (set-rear-ptr! deque (dl-prev (rear-ptr deque)))
          (if (null? (rear-ptr deque))
              (set-front-ptr! deque (rear-ptr deque))
-             deque)
+             (((rear-ptr deque) 'set-next!) '()))
          deque))) 
+
+;probably can make generic cons/car/cdr operations that work
+;on both ordinary lists and a doubly linked list, with
+;an operation that gets the previous item in the list
+;that's just slower on regular lists
+
+(define (print-deque deque) 
+  (dl-print (front-ptr deque)))
 
 (define test-deque (make-deque))
 
@@ -765,4 +774,4 @@ z2
 (front-deque test-deque)
 ;1
 (rear-deque test-deque)
-;9
+;9s
