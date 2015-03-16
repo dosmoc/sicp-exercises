@@ -775,3 +775,281 @@ z2
 ;1
 (rear-deque test-deque)
 ;9s
+
+;3.3.3 Representing Tables
+(define (lookup key table)
+  (let ((record (assoc key (cdr table))))
+    (if record
+        (cdr record)
+        false)))
+(define (assoc key records)
+  (cond ((null? records) false)
+        ((equal? key (caar records)) (car records))
+        (else (assoc key (cdr records)))))
+
+;;more like upsert
+(define (insert! key value table)
+  (let ((record (assoc key (cdr table))))
+    (if record
+        (set-cdr! record value)
+        (set-cdr! table
+                  (cons (cons key value) (cdr table)))))
+  'ok)
+
+(define (make-table)
+  (list '*table*))
+
+(define test-table (make-table))
+
+(lookup 'pie test-table)
+;#f
+(insert! 'pie 25 test-table)
+;ok
+(lookup 'pie test-table)
+;25
+(insert! 'pie 65 test-table)
+(lookup 'pie test-table)
+;66
+test-table
+
+
+;Two-dimensional tables
+
+(define (lookup key-1 key-2 table)
+  (let ((subtable (assoc key-1 (cdr table))))
+    (if subtable
+        (let ((record (assoc key-2 (cdr subtable))))
+          (if record
+    		  (cdr record)
+              false))
+        false)))
+
+(define (insert! key-1 key-2 value table)
+  (let ((subtable (assoc key-1 (cdr table))))
+    (if subtable
+        (let ((record (assoc key-2 (cdr subtable))))
+          (if record
+              (set-cdr! record value)
+              (set-cdr! subtable
+                        (cons (cons key-2 value)
+                              (cdr subtable)))))
+        (set-cdr! table
+                  (cons (list key-1
+                              (cons key-2 value))
+                        (cdr table)))))
+  'ok)
+
+;Creating local tables
+(define (make-table)
+  (let ((local-table (list '*table*)))
+    (define (lookup key-1 key-2)
+      (let ((subtable (assoc key-1 (cdr local-table))))
+        (if subtable
+            (let ((record (assoc key-2 (cdr subtable))))
+              (if record
+                  (cdr record)
+                  false))
+            false)))
+    (define (insert! key-1 key-2 value)
+      (let ((subtable (assoc key-1 (cdr local-table))))
+        (if subtable
+            (let ((record (assoc key-2 (cdr subtable))))
+              (if record
+                  (set-cdr! record value)
+                  (set-cdr! subtable
+                            (cons (cons key-2 value)
+                                  (cdr subtable)))))
+            (set-cdr! local-table
+                      (cons (list key-1
+                                  (cons key-2 value))
+                            (cdr local-table)))))
+      'ok)    
+    (define (dispatch m)
+      (cond ((eq? m 'lookup-proc) lookup)
+			((eq? m 'insert-proc!) insert!)
+			            (else (error "Unknown operation -- TABLE" m))))
+			    dispatch))
+
+(define operation-table (make-table))
+(define get (operation-table 'lookup-proc))
+(define put (operation-table 'insert-proc!))
+
+;Exercise 3.24
+(define (make-table same-key?)
+  (define (assoc key records)
+	  (cond ((null? records) false)
+	        ((same-key? key (caar records)) (car records))
+	        (else (assoc key (cdr records)))))
+  
+  (let ((local-table (list '*table*)))
+    (define (lookup key-1 key-2)
+      (let ((subtable (assoc key-1 (cdr local-table))))
+        (if subtable
+            (let ((record (assoc key-2 (cdr subtable))))
+              (if record
+                  (cdr record)
+                  false))
+            false)))
+    (define (insert! key-1 key-2 value)
+      (let ((subtable (assoc key-1 (cdr local-table))))
+        (if subtable
+            (let ((record (assoc key-2 (cdr subtable))))
+              (if record
+                  (set-cdr! record value)
+                  (set-cdr! subtable
+                            (cons (cons key-2 value)
+                                  (cdr subtable)))))
+            (set-cdr! local-table
+                      (cons (list key-1
+                                  (cons key-2 value))
+                            (cdr local-table)))))
+      'ok)    
+    (define (dispatch m)
+      (cond ((eq? m 'lookup-proc) lookup)
+			((eq? m 'insert-proc!) insert!)
+			            (else (error "Unknown operation -- TABLE" m))))
+			    dispatch))
+
+;Exercise 3.25
+;(*table* (pie (cherry . 3) (peach . 3)) (pie2 (apple2 . 500)))
+
+;lets think through the two key insert!:
+;if it doesn't find a subtable for the key, set the cdr of the
+;higher table to (cons (list key value) (cdr table))
+;
+;so you start with (*table* . ()) or just (*table*)
+;then you get (*table* . (cons (cons 'pie 'cherry) '()))
+;which is (*table* (pie cherry)) or (cons '*table* (cons (list 'pie 'cherry) '()))
+
+(define (not-null? xlist) (not (null? xlist)))
+
+(define (assoc key records)
+  (cond ((null? records) false)
+        ((equal? key (caar records)) (car records))
+        (else (assoc key (cdr records)))))
+
+(define (make-table)
+  (list '*table*))
+
+
+(define (lookup key-list table)
+  (let ((subtable (assoc (car key-list) (cdr table)))
+        (rest-keys (cdr key-list)))
+    (cond ((and subtable (not-null? rest-keys))
+           (lookup rest-keys subtable))
+          ((and subtable (null? rest-keys))
+           (cdr subtable))
+          (else false))))
+
+(define (insert! key-list value table)
+  (define (rest-subtable key-list value)
+    (let ((current-key (car key-list))) 
+      (if (null? (cdr key-list))
+          (cons current-key value)
+          (list current-key (rest-subtable (cdr key-list)
+                                           value)))))
+  
+  (let ((current-key (car key-list))
+        (rest-keys (cdr key-list)))
+   (let ((subtable (assoc current-key (cdr table))))
+    (cond ((and subtable (null? (cdr rest-keys)))
+           (set-cdr! subtable 
+                     (cons (rest-subtable rest-keys value)
+                           (cdr subtable))))
+          ((and subtable (not-null? rest-keys))
+           (insert! rest-keys value subtable))
+          ((and subtable (null? rest-keys))
+           (set-cdr! subtable value))
+          (else (set-cdr! table
+                          (cons (rest-subtable key-list value)
+                                (cdr table)))))))
+  'ok)
+
+(pie) (cherry bing)
+(cherry) (bing)
+
+(define test-table (make-table))
+
+
+(insert! (list 'pie2 'apple2) 500 test-table)
+;ok
+(lookup (list 'pie2 'apple2) test-table)
+;500
+(insert! (list 'pie 'peach) 3 test-table)
+;0k
+(lookup (list 'pie 'peach) test-table)
+;3
+(insert! (list 'pie 'cherry) 3 test-table)
+;ok
+(lookup (list 'pie 'cherry) test-table)
+;3
+(insert! (list 'pie 'cherry) 4 test-table)
+;(*table* (pie (cherry . 4)) (pie3 (cherry . 4)))
+
+(insert! (list 'pie 'cherry 'bing) 3 test-table)
+;(*table* (pie (cherry (bing . 3))) (pie3 (cherry . 4)))
+
+(insert! (list 'pie 'cherry 'sour) 9 test-table)
+;(*table* (pie (cherry (bing . 3))) (pie3 (cherry . 4)))
+
+(insert! (list 'pie 'apple) 4 test-table)
+
+;hmmm.... should nodes carry their own value for insert!, or once a new level
+;is added, everything is obliterated?
+;so looking up ('pie 'cherry) would get you 4, but looking up ('pie 'cherry 'bing) gets you 3?
+;this is different from how most hash maps work, but hashmaps aren't tables
+;let's do this as a nested table representation then.
+
+test-table
+
+(lookup (list 'pie 'cherry 'sour) test-table)
+;I'll think about this one later
+
+;Exercise 3.26
+;Let's stick to numerics for now, since we don't know about
+;how to compare symbols alphabetically
+
+(define (lookup key table)
+  (let ((record (assoc key (cdr table))))
+    (if record
+        (cdr record)
+        false)))
+(define (assoc key records)
+  (cond ((null? records) false)
+        ((equal? key (caar records)) (car records))
+        (else (assoc key (cdr records)))))
+
+;;more like upsert
+(define (insert! key value table)
+  (let ((record (assoc key (cdr table))))
+    (if record
+        (set-cdr! record value)
+        (set-cdr! table
+                  (cons (cons key value) (cdr table)))))
+  'ok)
+
+(define (make-table)
+  (list '*table*))
+
+;Exercise 3.27
+(define (fib n)
+  (cond ((= n 0) 0)
+        ((= n 1) 1)
+        (else (+ (fib (- n 1))
+                 (fib (- n 2))))))
+
+(define memo-fib
+  (memoize (lambda (n)
+             (cond ((= n 0) 0)
+                   ((= n 1) 1)
+                   (else (+ (memo-fib (- n 1))
+                            (memo-fib (- n 2))))))))
+
+(define (memoize f)
+  (let ((table (make-table)))
+	(lambda (x)
+	      (let ((previously-computed-result (lookup x table)))
+	        (or previously-computed-result
+	            (let ((result (f x)))
+	              (insert! x result table)
+	              result))))))
