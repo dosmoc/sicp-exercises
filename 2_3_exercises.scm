@@ -284,7 +284,7 @@
         (else (list m1 '* m2))))
 
 (deriv '(x + (3 * (x + (y + 2)))) 'x)
-
+;4
 (deriv '(x + 3) 'x)
 ;1
 (deriv '(x * y) 'x)
@@ -293,8 +293,15 @@
 ;((x * y) + (y * (x + 3)))
 
 ;b.
-
 ;(deriv '(x + 3 * (x + y + 2)) 'x)
+;it's a sum? only if there are no multiplications in 
+;the rest of the term, else it's a multiplication
+;the terms are defined as the first operation
+;from left to right, so above it would be:
+; m1 (x + 3)
+; m2 (x + y + 2)
+
+
 ;laterz
 
 ;2.3.3  Example: Representing Sets
