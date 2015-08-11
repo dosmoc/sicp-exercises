@@ -1014,28 +1014,43 @@ test-table
 ;Exercise 3.26
 ;Let's stick to numerics for now, since we don't know about
 ;how to compare symbols alphabetically
+;let's also stick to just a single level of keys
+
+(define (key tree) (car tree))
+(define (value tree) (cadr tree))
+(define (set-value! value tree)
+  (set-car! (cdr tree)))
+(define (left-branch tree) (caddr tree))
+(define (right-branch tree) (cadddr tree))
+(define (make-tree key value left right)
+  (list key value left right))
 
 (define (lookup key table)
   (let ((record (assoc key (cdr table))))
     (if record
-        (cdr record)
+        (value record)
         false)))
-(define (assoc key records)
-  (cond ((null? records) false)
-        ((equal? key (caar records)) (car records))
-        (else (assoc key (cdr records)))))
 
-;;more like upsert
-(define (insert! key value table)
-  (let ((record (assoc key (cdr table))))
-    (if record
-        (set-cdr! record value)
-        (set-cdr! table
-                  (cons (cons key value) (cdr table)))))
+(define (assoc key-to-find records)
+  (cond ((null? records) false)
+        ((= key-to-find (key records)) records)
+        ((< key-to-find (key records))
+         (assoc key-to-find (left-branch records)))
+        ((> key-to-find (key records))
+         (assoc key-to-find (right-branch records)))))
+
+(define (insert! key-to-insert value table)
+  (let ((record (assoc key-to-insert (cdr table))))
+    (cond (record (set-value! record value)) 
+          ((null? (key table))
+           (set! (key table) key-to-insert)
+           (set-value! table value))
+          ((< (key table) key-to-insert)
+           (set! (left-branch table) (make-tree key-to-insert value '() '())))))
   'ok)
 
 (define (make-table)
-  (list '*table*))
+  (make-tree '*table*' '() '() '())
 
 ;Exercise 3.27
 (define (fib n)
