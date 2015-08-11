@@ -826,7 +826,7 @@
   (let ((type-tags (map type-tag args)))
   	 (let ((proc (get op type-tags)))
     	 (if proc
-          	 ;need to test if the op is dropable because
+             ;need to test if the op is dropable because
              ;it makes no sense to try to drop the results 
              ;of functions that map to non numeric values
            (if (not (memq op dropable))
