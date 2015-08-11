@@ -587,6 +587,8 @@ z2
   ((y 'set-prev!) x)
   x)
 
+;don't remember where I picked up on snoc
+;for cons on the other end
 (define (dl-snoc y x)
   ((x 'set-next!) y)
   ((y 'set-prev!) x)
@@ -930,7 +932,6 @@ test-table
 (define (make-table)
   (list '*table*))
 
-
 (define (lookup key-list table)
   (let ((subtable (assoc (car key-list) (cdr table)))
         (rest-keys (cdr key-list)))
@@ -940,6 +941,11 @@ test-table
            (cdr subtable))
           (else false))))
 
+;This works as long as we assume that value will
+;not be a compound data type.
+;Would need some way to distinguish a pair
+;intended to be a key/value pair vs
+;data represented as a pair
 (define (insert! key-list value table)
   (define (rest-subtable key-list value)
     (let ((current-key (car key-list))) 
