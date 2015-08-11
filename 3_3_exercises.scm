@@ -957,10 +957,11 @@ test-table
   (let ((current-key (car key-list))
         (rest-keys (cdr key-list)))
    (let ((subtable (assoc current-key (cdr table))))
-    (cond ((and subtable (null? (cdr rest-keys)))
+    (cond ((and subtable 
+                (not-null? rest-keys) 
+                (not (pair? (cdr subtable))))
            (set-cdr! subtable 
-                     (cons (rest-subtable rest-keys value)
-                           (cdr subtable))))
+                     (list (rest-subtable rest-keys value))))
           ((and subtable (not-null? rest-keys))
            (insert! rest-keys value subtable))
           ((and subtable (null? rest-keys))
