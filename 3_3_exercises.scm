@@ -268,7 +268,7 @@ z2
                ;we're depending on short circuit
                ;evaluation here to avoid an
                ;infinite loop; If terminates? is false
-               ;the "and" operator doesn't evaluate the
+               ;the "and" operator doesn't evaluate
                ;and the entire expression is false
                (and (terminates? (car x))
                     (terminates? (cdr x))))))))
@@ -601,7 +601,7 @@ z2
 (define (dl-prev x)
   (x 'prev))
 
-;points to null on pot ends
+;points to null on both ends
 (define x (make-dl-node 1 '() '()))
 
 (x 'data)
@@ -683,8 +683,7 @@ z2
          (set-front-ptr! deque (dl-cdr (front-ptr deque)))
          deque))) 
 
-;these look really similar to the operations and queue
-
+;these look really similar to the operations on queue
 
 (define (front-insert-deque! deque item)
   (let ((new-pair (make-dl-node item '() '())))
