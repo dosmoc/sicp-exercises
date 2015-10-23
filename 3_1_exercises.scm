@@ -284,7 +284,7 @@
       ;in something like python
       (cond ((eq? m 'generate) (generate))
             ((eq? m 'reset) reset)
-            (else (error "Uknown operation"))))))
+            (else (error "Unknown operation"))))))
 
 ;3.1.3 The Costs of Introducing Assignment
 
