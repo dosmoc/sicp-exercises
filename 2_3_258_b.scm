@@ -120,3 +120,20 @@
 (deriv '(x * y * (x + 3)) 'x)
 ;((y * (x + 3)) + (y * x))
 ;hmmm, much reduced, but we want (y * (x + 3) + y * x)
+
+;let's try just appending the addend and augend 
+;when making a out of compound expressions
+(define (make-sum a1 a2)
+  (cond ((=number? a1 0) a2)
+        ((=number? a2 0) a1)
+        ((and (number? a1) (number? a2)) (+ a1 a2))
+        (else (append a1 (cons '+ a2)))))
+
+(deriv '(x * y * (x + 3)) 'x)
+;(y * (x + 3) + y * x)'
+(deriv '(x + 3 * (x + y + 2)) 'x)
+;4
+(deriv '(x + 3 * (x + y + 2)) 'y)
+;3
+(deriv '(x * y * (x + 3)) 'y)
+((x + 3) * x)
