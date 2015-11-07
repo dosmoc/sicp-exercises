@@ -136,4 +136,17 @@
 (deriv '(x + 3 * (x + y + 2)) 'y)
 ;3
 (deriv '(x * y * (x + 3)) 'y)
-((x + 3) * x)
+;((x + 3) * x)
+
+;if we're making a product, we don't want this to happen:
+; ((5 * 3 + 2) * 3)
+; (5 * 3 + 2 * 3)
+; (15 + 6)
+; 21
+;
+; it should actually be this:
+; ((15 + 2) * 3)
+; (17 * 3)
+; 51
+;
+; Is there any situation where this can happen?
