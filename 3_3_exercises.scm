@@ -815,7 +815,6 @@ test-table
 
 
 ;Two-dimensional tables
-
 (define (lookup key-1 key-2 table)
   (let ((subtable (assoc key-1 (cdr table))))
     (if subtable
@@ -1015,42 +1014,67 @@ test-table
 ;Let's stick to numerics for now, since we don't know about
 ;how to compare symbols alphabetically
 ;let's also stick to just a single level of keys
+(define false #f)
+(define true #t)
 
-(define (key tree) (car tree))
-(define (value tree) (cadr tree))
-(define (set-value! value tree)
-  (set-car! (cdr tree)))
-(define (left-branch tree) (caddr tree))
-(define (right-branch tree) (cadddr tree))
-(define (make-tree key value left right)
-  (list key value left right))
+;from chapter 2:
+(define (entry tree) (car tree))
+(define (entry-key entry) (car entry))
+(define (left-branch tree) (cadr tree))
+(define (right-branch tree) (caddr tree))
+(define (make-tree entry left right)
+  (list entry left right))
+
+(define (adjoin-set x set)
+  (cond ((null? set) (make-tree x '() '()))
+        ((= (entry-key x) (entry-key (entry set))) set)
+        ((< (entry-key x) (entry-key (entry set)))
+         (make-tree (entry set) 
+                    (adjoin-set x (left-branch set))
+                    (right-branch set)))
+        ((> (entry-key x) (entry-key (entry set)))
+         (make-tree (entry set)
+                    (left-branch set)
+                    (adjoin-set x (right-branch set))))))
 
 (define (lookup key table)
   (let ((record (assoc key (cdr table))))
     (if record
-        (value record)
+        (cdr record)
         false)))
+(define (assoc key records)
+  (if (null? records) false
+      (let ((current-entry (entry records)))
+        (cond ((equal? key (car current-entry)) current-entry)
+              ((< key (car current-entry)) (assoc key (left-branch records)))
+              ((> key (car current-entry)) (assoc key (right-branch records)))))))
 
-(define (assoc key-to-find records)
-  (cond ((null? records) false)
-        ((= key-to-find (key records)) records)
-        ((< key-to-find (key records))
-         (assoc key-to-find (left-branch records)))
-        ((> key-to-find (key records))
-         (assoc key-to-find (right-branch records)))))
-
-(define (insert! key-to-insert value table)
-  (let ((record (assoc key-to-insert (cdr table))))
-    (cond (record (set-value! record value)) 
-          ((null? (key table))
-           (set! (key table) key-to-insert)
-           (set-value! table value))
-          ((< (key table) key-to-insert)
-           (set! (left-branch table) (make-tree key-to-insert value '() '())))))
+(define (insert! key value table)
+  (let ((record (assoc key (cdr table))))
+    (if record
+        (set-cdr! record value)
+        (set-cdr! table (adjoin-set (cons key value) (cdr table)))))
   'ok)
 
 (define (make-table)
-  (make-tree '*table*' '() '() '())
+  (list '*table*))
+
+(define t (make-table))
+(insert! 2 'apple t)
+;ok
+
+(lookup 2 t)
+;'apple
+
+(lookup 3 t)
+;f
+
+(insert! 1 'cherry t)
+(insert! 5 'orange t)
+t
+;(*table* (2 . apple) ((1 . cherry) () ()) ((5 . orange) () ()))
+(lookup 5 t)
+;orange
 
 ;Exercise 3.27
 (define (fib n)
