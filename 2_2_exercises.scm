@@ -395,7 +395,6 @@
 
 ;starting to see the need for type tagging... if you can tag as a mobile or struct, 
 ;the program might start to be easier to understand
-
 (define m1 
   (make-mobile (make-branch 1 (make-mobile (make-branch 2 3) (make-branch 3 4))) (make-branch 5 6)))
 
@@ -771,7 +770,7 @@
 ;(1 (2 (3 ())))
 (fold-left list nil (list 1 2 3))
 ;(((() 1) 2) 3)
-;the op must be communitivity to guarantee the fold-right and fold-left will produce the same 
+;the op must be communitative to guarantee the fold-right and fold-left will produce the same 
 ;values for any sequence
 
 ;Exercise 2.39
@@ -793,7 +792,9 @@
   (fold-right (lambda (x y) (cons y x)) nil sequence))
 ;this gets us the wrong thing:
 ;((((() . 4) . 3) . 2) . 1)
-; something like (op 1 (op 2 (op 3 (op 4 nil))))
+;which is (cons '() (cons 4 (cons 3 (cons 2 1))))
+
+;need something like (op 1 (op 2 (op 3 (op 4 nil))))
 
 (define (append list1 list2)
   (if (null? list1)
@@ -811,7 +812,6 @@
   (fold-left (lambda (x y) (cons y x)) nil sequence))
 
 ;Nested Mappings
-
 
 ;(accumulate append
 ;            nil
