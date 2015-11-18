@@ -1100,6 +1100,57 @@ t
 	              (insert! x result table)
 	              result))))))
 
+;This diagram is pretty complicated. After defining memoize and memo-fib you get an 
+;environment that looks like this:
+
+;        +--------------------------------------------------------------------------------------+
+;Global  |                                                                                      |
+;Env +--->                                                                                      |
+;        |                                                                                      |
+;        |  memo-fib:+------------------------+                                                 |
+;        |  memoize:+--+                      |                                                 |
+;        |             |                      |                                                 |
+;        +------------------^-----------------------------------^--^----------------------------+
+;                      |    |                 |                 |  |
+;                      |    |                 |                 |  |
+;                      v    |                 |            +----+---+         +------------+
+;                  +-+(|)+--+                 |            |        <---------+            |
+;                  v                          |            | f:+    |         | table:     |
+;                parameters: f                |      E1+--->   |    |   E2+--->   (*table*)|
+;                body ((lambda (table) ...)   |            |   |    |         |            |
+;                        (make-table))        |            +--------+         +------^-----+
+;                                             |                |   |                 |
+;                                             |                v   |                 |
+;                                             |           +--+(|)+-+                 |
+;                                             |           v                          |
+;                                             |        parameters: n                 |
+;                                             |        body:                         |
+;                                             |        (cond ((= n 0) 0) ...)        |
+;                                             v                                      |
+;                                                                                    |
+;                                      +----+(|)+------------------------------------+
+;                                      v
+;                             parameters: x
+;                             body:
+;                               (let ((previously-computed-result ...))
+;                                                    ...)
+; memo-fib can compute the nth Fibonnacci number in a number of steps proportional to
+; n because of the expression (+ (memo-fib (- n 1) ...) is evaluated in this combination.
+; The left branch in this combination evaluates fib 2, fib 1, and fib 0. Each evaluation
+; of
+;   (or previously-computed-result
+;       (let ((result (f x)))
+;         (insert! x result table)
+;         result))
+; adds result to the table in E2.
+;
+; The right branch, (memo-fib (- n 2) ...), will get its results there when evaluating (lookup x table) 
+; On another note, apparently or returns the first non #f value, whereas and returns the last value
+; if all of them are are not #f. This is stated in section 1.1.6, but I did not notice its use until
+; now.
+; (define memo-fib (memoize fib)) wouldn't work because the recursive calls to fib in the body
+; of the definition of fib do not refer to the memoized version.
+
 ;3.3.4 A Simulator for Digital Circuits
 
 ;;For Section 3.3.4, used by and-gate
