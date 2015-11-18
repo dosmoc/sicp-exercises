@@ -1062,19 +1062,20 @@ test-table
 (define t (make-table))
 (insert! 2 'apple t)
 ;ok
-
 (lookup 2 t)
 ;'apple
-
 (lookup 3 t)
 ;f
-
 (insert! 1 'cherry t)
 (insert! 5 'orange t)
 t
 ;(*table* (2 . apple) ((1 . cherry) () ()) ((5 . orange) () ()))
 (lookup 5 t)
 ;orange
+(insert! 2 'pear t)
+;ok
+t
+;(*table* (2 . pear) ((1 . cherry) () ()) ((5 . orange) () ()))
 
 ;Exercise 3.27
 (define (fib n)
