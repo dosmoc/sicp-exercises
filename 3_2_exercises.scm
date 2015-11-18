@@ -62,12 +62,41 @@
         "Insufficient funds")))
  initial-amount)
 
-;This introduces an extra frame binding the initial-amount to 100 compared to the first version of make-withdraw. The environment 
-;subordinate to that one is equivalent to the first version, binding balance to 100.
+;This introduces an extra frame binding the initial-amount to 100 compared to the first version of make-withdraw. 
 
-;After (W1 50) is evaluated, balance in that frame is set to 50, but the initial-amount in 100 remains.
+;Issuing (define W1 (make-withdraw 100)) creates an environment, E1, with intial-amount bound to 100. The body of
+; make-withdraw is evaluated. Since the body of make withdraw is equivalent to:
+;((lambda (balance)
+;   (lambda (amount)
+;    (if (>= balance amount)
+;        (begin (set! balance (- balance amount))
+;               balance)
+;        "Insufficient funds")))
+; initial-amount)
 
-;Exercise 3.10
+;We set up a new environment E2, binding balance to 100. A procedure object is returned to W1:
+;(lambda (amount)
+;  (if (>= balance amount)
+;      (begin (set! balance (- balance amount))
+;             balance)
+;      "Insufficient funds"))
+
+;The procedure object points to code with argument and argument of amount and the following body:
+;(if (>= balance amount)
+;   (begin (set! balance (- balance amount))
+;          balance)
+;   "Insufficient funds")
+
+;The procedure's environment part points to E2
+;Evaluating
+(W1 50)
+;Mutates the balance in E2
+
+(define W2 (make-withdraw 100))
+;Sets up new environments, E3 with initial-amount bound to 100, and E4, with balance bound to 100. W2's procedure
+;object code part points to the same code as W1; it's environment part points to E4.
+
+;Exercise 3.11
 (define acc (make-account 50))
 ;             +----------------------------------------------------------------+
 ;     Global-->                                                                |
@@ -134,3 +163,4 @@
 ; E2 is forgotten between each evaluation. As such, evaluating:
 (define acc2 (make-account 100))
 ;Sets up a new E2 identical to E1 in structure, where balance is bound to 100. Only code is shared between them.
+
