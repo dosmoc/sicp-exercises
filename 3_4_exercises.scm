@@ -61,10 +61,8 @@
 ;Serializers in scheme.
 
 ;MIT Scheme specific implementation of
-; parallel-execute from parallel.scm
-;;; To allow parallel execution of any number of thunks, for
-;;; effect.  The values are discarded.
-
+; parallel-execute from parallel.scm, but it 
+;doesn't seem to work
 (define disallow-preempt-current-thread
   (access disallow-preempt-current-thread
 	  (->environment '(runtime thread))))
@@ -75,33 +73,33 @@
 
 (define (kill-thread thread)
   (let ((event
-	 (lambda ()
-	   (exit-current-thread 'RIP))))
-    (without-interrupts
-     (lambda ()
-       (case (thread-execution-state thread)
-	 ((STOPPED) (restart-thread thread #t event))
-	 ((DEAD) unspecific)
-	 (else (signal-thread-event thread event)))))))
-
+	        (lambda ()
+	          (exit-current-thread 'RIP))))
+       (without-interrupts
+         (lambda ()
+           (case (thread-execution-state thread)
+	               ((STOPPED) (restart-thread thread #t event))
+	               ((DEAD) unspecific)
+	               (else (signal-thread-event thread event)))))))
 
 (define (parallel-execute . thunks)
   (let ((my-threads '()))
     (define (terminator)
       (without-interrupts
-       (lambda ()
-	 (for-each kill-thread my-threads)
-	 (set! my-threads '())
-	 unspecific)))
+        (lambda ()
+        	 (for-each kill-thread my-threads)
+      	   (set! my-threads '())
+      	   unspecific)))
     (without-interrupts
-     (lambda ()
-       (set! my-threads
-	     (map (lambda (thunk)
-		    (let ((thread (create-thread #f thunk)))
-		      (detach-thread thread)
-		      thread))
-		  thunks))
-       unspecific))
+      (lambda ()
+        (set! my-threads
+	      (map 
+          (lambda (thunk)
+		        (let ((thread (create-thread #f thunk)))
+		          (detach-thread thread)
+		           thread))
+		      thunks))
+        unspecific))
     terminator))
 
 (define x 10)
@@ -110,3 +108,16 @@
                   (lambda () (set! x (+ x 1))))
 
 x
+;The MIT-Scheme website proves an implementation of parallel:
+;https://mitpress.mit.edu/sicp/psets/ps7/parallel.scm
+;
+;However, it's difficult to see the thunks in parallel-execute 
+;being interleaved-- possibly because they aren't doing enough
+;work (and thus take enough time) to be preempted. See discussion
+;of threads for Racket here: 
+;http://lists.racket-lang.org/users/archive/2006-December/015852.html
+; and here:
+;http://lists.racket-lang.org/users/archive/2006-January/011112.html
+;
+;It may be possible to get a finer grained simulation of parallel execution
+;using engines: http://lists.racket-lang.org/users/archive//2002-September/000620.html
