@@ -108,6 +108,7 @@
                   (lambda () (set! x (+ x 1))))
 
 x
+
 ;The MIT-Scheme website proves an implementation of parallel:
 ;https://mitpress.mit.edu/sicp/psets/ps7/parallel.scm
 ;
@@ -121,3 +122,47 @@ x
 ;
 ;It may be possible to get a finer grained simulation of parallel execution
 ;using engines: http://lists.racket-lang.org/users/archive//2002-September/000620.html
+
+
+;possible values for the about paralle-execute:
+
+;101:  P1 sets x to 100 and then P2 increments x to 101.
+;121:  P2 increments x to 11 and then P1 sets x to x times x.
+;110:  P2 changes x from 10 to 11 between the two times that P1 accesses the value of x during the evaluation of (* x x).
+;11:   P2 accesses x, then P1 sets x to 100, then P2 sets x.
+;100:  P1 accesses x (twice), then P2 sets x to 11, then P1 sets x.
+
+
+;Exercise 3.39 
+;Which of the five possibilities in the parallel execution shown above
+;remain if we instead serialize execution as follows:
+
+(define x 10)
+
+(define s (make-serializer))
+
+(parallel-execute (lambda () (set! x ((s (lambda () (* x x))))))
+                  (s (lambda () (set! x (+ x 1)))))
+
+; Accessing x is serialized in P1
+; All of P2 is serialized
+; 121 cannot occur because (* x x) is serialized
+; 11 cannot occur because all of P2 is serialized
+; So 101, 110, and 100 are the remaining possibilities
+
+; Exercise 3.40.  
+; Give all possible values of x that can result from executing
+
+(define x 10)
+
+(parallel-execute (lambda () (set! x (* x x)))
+                  (lambda () (set! x (* x x x))))
+
+; Which of these possibilities remain if we instead use serialized procedures:
+
+(define x 10)
+
+(define s (make-serializer))
+
+(parallel-execute (s (lambda () (set! x (* x x))))
+                  (s (lambda () (set! x (* x x x)))))
