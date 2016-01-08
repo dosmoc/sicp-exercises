@@ -1,6 +1,7 @@
 Answers to SICP exercises... not necessarily correct. Any original code is public domain, according to the UNLICENSE.
 
-Structure and Interpretation of Computer Programs by Harold Abelson and Gerald Jay Sussman with Julie Sussman is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/) by the MIT Press. Changes were made to exercise example code work through the answer. Some exercises rely on code from sample programming assignments. Copyright info here:
+Structure and Interpretation of Computer Programs by Harold Abelson and Gerald Jay Sussman with Julie Sussman is licensed under a [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/) by the MIT Press. Changes were made to exercise example code work through the answer. 
 
+Some exercises rely on code from sample programming assignments. Copyright info here:
 https://mitpress.mit.edu/sicp/psets/index.html
 
