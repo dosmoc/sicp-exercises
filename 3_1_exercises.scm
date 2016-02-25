@@ -184,7 +184,7 @@
 ;poor man's objects
 ;
 ;That said, I wouldn't want to mangle objects to get
-;something close to the usefulness first class functions
+;something close to the usefulness of first class functions
 ;
 ;I like that assignment feels so awkward in Scheme or Clojure
 
