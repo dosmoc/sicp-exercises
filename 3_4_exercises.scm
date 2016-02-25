@@ -151,14 +151,41 @@ x
 ; So 101, 110, and 100 are the remaining possibilities
 
 ; Exercise 3.40.  
-; Give all possible values of x that can result from executing
-
 (define x 10)
 
 (parallel-execute (lambda () (set! x (* x x)))
                   (lambda () (set! x (* x x x))))
 
-; Which of these possibilities remain if we instead use serialized procedures:
+;P1 and P2 execute one after the other
+;the easy ones:
+(set! x (* 10 10))
+;x is 100
+(set! x (* 100 100 100))
+;x is 1000000
+
+;P2 executes after P1
+(set! x (* 10 10 10))
+;x is 1000
+(set! x (* 1000 1000))
+;x is 1000000
+
+;P1 reads x of 10, but P2 reads and sets in between
+:(set! x (* 10 1000))
+;x is 10000
+
+;P2 reads x of 10, but P1 reads and sets in between subsequent reads:
+(set! x (* 10 100 100))
+;x is 100000
+
+;P2 reads x twice, but P1 reads and sets in between subsequent reads:
+(set! x (* 10 10 100))
+;x is 10000
+
+;P2 and P1 read x as 10 each, and and each set! occurs at a seperate time:
+;x is 100 
+;x is 1000
+
+;5 possible values
 
 (define x 10)
 
@@ -166,3 +193,78 @@ x
 
 (parallel-execute (s (lambda () (set! x (* x x))))
                   (s (lambda () (set! x (* x x x)))))
+
+;Each procedure is completely serialized; only the first two
+;orderings are possible, so x can only be 1000000
+
+;Exercise 3.41 We are asked if the commented change prevents some
+;anomalous behavior:
+
+(define (make-account balance)
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin (set! balance (- balance amount))
+               balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (let ((protected (make-serializer)))
+    (define (dispatch m)
+      (cond ((eq? m 'withdraw) (protected withdraw))
+            ((eq? m 'deposit) (protected deposit))
+            ((eq? m 'balance)
+             ((protected (lambda () balance)))) ; serialized
+            (else (error "Unknown request -- MAKE-ACCOUNT"
+                         m))))
+    dispatch))
+
+;Previously, withdraw and deposit were only serialized in the same set,
+;preventing concurrent withdraws or deposits to the account. The change
+;also prevents balance from being accessed concurrently.
+
+;My first instinct is yes, if a balance is being read at the same time it
+;is being changed by another process, a possiblity described by footnote 36.
+;If the balance is read in the middle of a change, the data there may 
+;consist partly of the old value and partly of the new value.
+;The same note says that most computers have interlocks on memory-write 
+;operations; it would depend on the implementation of writing values.
+
+;Exercise 3.42 Is it safe to serialize outside of the dispatch procedure?
+
+(define (make-account balance)
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin (set! balance (- balance amount))
+               balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (let ((protected (make-serializer)))
+    (let ((protected-withdraw (protected withdraw))
+          (protected-deposit (protected deposit)))
+      (define (dispatch m)
+        (cond ((eq? m 'withdraw) protected-withdraw)
+              ((eq? m 'deposit) protected-deposit)
+              ((eq? m 'balance) balance)
+              (else (error "Unknown request -- MAKE-ACCOUNT"
+                           m))))
+      dispatch)))
+
+;We get in this version, (protected-withdraw0) and (protected-deposit0) each time 
+;whereas in the previous version we might get 
+;(protected-withdraw0), (protected-deposit0), (protected-withdraw1), (protected-deposit1),
+;(protected-withdraw2), (protected-withdraw3), (protected-deposit2)
+
+;The text of SICP says that 
+
+;"serialization creates distinguished sets
+; of procedures such that only one execution of a procedure in each serialized set
+; is permitted to happen at a time. If some procedure in the set is being executed, 
+; then a process that attempts to execute any procedure in the set will be forced to 
+; wait until the first execution has finished."
+
+; So it doesn't matter which particular procedure is serialized, it cannot be executed 
+; concurrently with other procedures serialized by that serializer. The behavior of 
+; the two versions are the same.
