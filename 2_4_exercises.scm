@@ -391,3 +391,22 @@
 ;Best for new operations: data directed style
 ;Easier to add new operations
 ;Bleh
+
+;The exercise actually askes about changes required for
+;three stategies:
+;explicit dispatch
+;data-directed-style
+;message-passing-style
+
+;Explicit dispatch requires you to alter a cond statement in
+;an operation procedure, adding conditions checking
+;on the type whenever a new
+;type needs to be manipulated for a generic operation
+
+;data-directed-style let's you simply add more records to the
+;table for type based dispatch to generic procedures -- a more
+;robust approach than hunting down each cond statement that
+;needs to deal with the new type 
+
+;message-passing style lets you be concerned with just adding
+;new operations to a type
