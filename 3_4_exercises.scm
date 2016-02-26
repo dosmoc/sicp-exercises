@@ -268,3 +268,95 @@ x
 ; So it doesn't matter which particular procedure is serialized, it cannot be executed 
 ; concurrently with other procedures serialized by that serializer. The behavior of 
 ; the two versions are the same.
+
+;Complexity of using multiple shared resources
+
+;swapping balances
+;access balance
+;compute difference
+;withdraw diff from one, deposit it the other
+
+(define (exchange account1 account2)
+  (let ((difference (- (account1 'balance)
+                       (account2 'balance))))
+    ((account1 'withdraw) difference)
+    ((account2 'deposit) difference)))
+
+;exposing serializers:
+
+(define (make-account-and-serializer balance)
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin (set! balance (- balance amount))
+               balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (let ((balance-serializer (make-serializer)))
+    (define (dispatch m)
+      (cond ((eq? m 'withdraw) withdraw)
+            ((eq? m 'deposit) deposit)
+            ((eq? m 'balance) balance)
+            ((eq? m 'serializer) balance-serializer)
+            (else (error "Unknown request -- MAKE-ACCOUNT"
+                         m))))
+    dispatch))
+
+;must explicitly manage serialization
+(define (deposit account amount)
+  (let ((s (account 'serializer))
+        (d (account 'deposit)))
+    ((s d) amount)))
+
+;implementation using accessible serializers
+(define (serialized-exchange account1 account2)
+  (let ((serializer1 (account1 'serializer))
+        (serializer2 (account2 'serializer)))
+    ((serializer1 (serializer2 exchange))
+     account1
+     account2)))
+
+;Exercise 3.43
+;Todo draw diagrams
+
+;Exercise 3.44
+
+;Bitdiddle claims this procedure is sufficient
+;for multiple concurrent transfers between
+;multiple accounts as long as deposit and withdrawal
+;transactions are serialized
+(define (transfer from-account to-account amount)
+  ((from-account 'withdraw) amount)
+  ((to-account 'deposit) amount))
+
+;Louis thinks that a solution is needed similar to that
+;of the exchange problem
+
+;Exercise 3.45
+;What's wrong with making an account object serialize
+;withdraw and deposit
+;while at the same time exposing the serializer
+;for us in something like serialized-exchange
+(define (make-account-and-serializer balance)
+  (define (withdraw amount)
+    (if (>= balance amount)
+        (begin (set! balance (- balance amount))
+               balance)
+        "Insufficient funds"))
+  (define (deposit amount)
+    (set! balance (+ balance amount))
+    balance)
+  (let ((balance-serializer (make-serializer)))
+    (define (dispatch m)
+      (cond ((eq? m 'withdraw) (balance-serializer withdraw))
+            ((eq? m 'deposit) (balance-serializer deposit))
+            ((eq? m 'balance) balance)
+            ((eq? m 'serializer) balance-serializer)
+            (else (error "Unknown request -- MAKE-ACCOUNT"
+                         m))))
+    dispatch))
+
+
+(define (deposit account amount)
+ ((account 'deposit) amount))
