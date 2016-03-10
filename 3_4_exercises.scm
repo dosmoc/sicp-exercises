@@ -318,7 +318,69 @@ x
      account2)))
 
 ;Exercise 3.43
-;Todo draw diagrams
+
+;If exchanges are conducted sequentially:
+;Lets say the accounts are A1=10, A2=20, A3=30
+;In sequential exchanges, there is never the possiblity
+;of reading the state of an account in the middle of
+;an exchange:
+
+;(exchange A1 A2) --> A1=20, A2=10
+;(exchange A3 A1) --> A3=20, A1=30
+
+;and so on. This can be violated if there are concurrent
+;exchanges using this version of the procedure:
+
+(define (exchange account1 account2)
+  (let ((difference (- (account1 'balance)
+                       (account2 'balance))))
+    ((account1 'withdraw) difference)
+    ((account2 'deposit) difference)))
+
+;Let's use the example from the text: Peter exchanges
+; A1 and A2, and Paul exchanges A1 and A3
+
+
+
+; (A1 10) --- both Pl and Pt Access Balance (10) --------------------------------------
+;
+;
+; (A2 20) ---------------------------------------------------- Pt Access Balance (20) -- 
+;
+;
+; (A3 30) ------------------------------ Pl Access Balance (30) -----------------------
+;
+; time -------------------------------------------------------------------------------->
+
+;at this point, Paul's procudure will:
+
+ ((A1 'withdraw) -20)
+ ((A3 'deposit) -20)
+
+;and Peter's:
+((account1 'withdraw) -10)
+((account2 'deposit) -10)
+
+;Continuing from above:
+
+; (A1 10) --- Pl Withdraw -20 (A1 30) --- Pt Withdraw -10 (A1 40) --- 
+;
+;
+; (A2 20) ------------------------------------------------------- Pt Deposit -10 (A2 10) 
+;
+;
+; (A3 30) ------------------------------- Pl Deposit -20 (A3 10) ------- 
+;
+; time -------------------------------------------------------------------------------->
+
+; We see the sum of the balances is preserved at $50. Can't argue that this will
+; hold true for all exchanges.  If whithdraws and deposits on accounts
+; aren't serialized, we get much the same situation discusses in the Serializers in Scheme section,
+; where the individual operations in withdraw/deposit might be interleaved. Instinctively, this
+; is why the sum won't be preserved, but I'm not sure this is such a good argument.
+
+; Todo: draw diagram of non-serialized withdraw/deposit
+
 
 ;Exercise 3.44
 
@@ -330,8 +392,12 @@ x
   ((from-account 'withdraw) amount)
   ((to-account 'deposit) amount))
 
-;Louis thinks that a solution is needed similar to that
-;of the exchange problem
+; Louis thinks that a solution is needed similar to that
+; of the exchange problem. However, the difference seems to be
+; that the amount to withdraw/deposit cannot encounter the same
+; problem as in the exchange. There's no possibility that
+; a read on the same account will be done concurrently by two
+; different users.
 
 ;Exercise 3.45
 ;What's wrong with making an account object serialize
@@ -360,3 +426,55 @@ x
 
 (define (deposit account amount)
  ((account 'deposit) amount))
+
+;Nested serialization doesn't work.
+
+(define (exchange account1 account2)
+  (let ((difference (- (account1 'balance)
+                       (account2 'balance))))
+    ((account1 'withdraw) difference)
+    ((account2 'deposit) difference)))
+
+(define (serialized-exchange account1 account2)
+  (let ((serializer1 (account1 'serializer))
+        (serializer2 (account2 'serializer)))
+    ((serializer1 (serializer2 exchange))
+     account1
+     account2)))
+
+; so no other procedures serialized by a1 and a2 can execute while exchange
+; is executing, but exchange calls withdraw, which is 
+; serialized for a1 and a2 -- withdraw cannot execute until exchange is finished 
+; exchange cannot finish until withdraw is finished etc... this is deadlock,
+; described later in the chapter
+
+;Implementing serializers
+
+(define (make-serializer)
+  (let ((mutex (make-mutex)))
+    (lambda (p)
+      (define (serialized-p . args)
+        (mutex 'acquire)
+        (let ((val (apply p args)))
+          (mutex 'release)
+          val))
+      serialized-p)))
+
+(define (make-mutex)
+  (let ((cell (list false)))            
+    (define (the-mutex m)
+      (cond ((eq? m 'acquire)
+             (if (test-and-set! cell)
+                 (the-mutex 'acquire))) ; retry
+            ((eq? m 'release) (clear! cell))))
+    the-mutex))
+(define (clear! cell)
+  (set-car! cell false))
+
+; not sufficient implementation of test-and-set!
+; actual implementation will be system specific
+(define (test-and-set! cell)
+  (if (car cell)
+      true
+      (begin (set-car! cell true)
+             false)))
