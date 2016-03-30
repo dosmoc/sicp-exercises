@@ -478,3 +478,29 @@ x
       true
       (begin (set-car! cell true)
              false)))
+
+;Exercise 3.46
+;TODO: draw diagram
+
+;Exercise 3.47
+(define (make-semaphore n)
+  (let ((max-p n)
+        (mutex (make-mutex)))
+    
+    (define (inc-n) (set! n (+ n 1)))
+    (define (dec-n) (set! n (- n 1)))
+    (define (acquire-mutex) (mutex 'aquire))
+        
+    (define acquire
+      (do dec-n
+          (if (<= n 0) acquire-mutex)))
+    
+    (define release
+      (do inc-n
+          (if (= n 0) (mutex 'release))))
+    
+    (if (= n 0) (acquire-mutex))
+    
+    (lambda (m)
+      (cond ((eq? m 'acquire) (acquire))
+            ((eq? m 'release) (release))))))
