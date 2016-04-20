@@ -483,11 +483,12 @@ x
 ;TODO: draw diagram
 
 ;Exercise 3.47
+;a. 
 (define (make-semaphore n)
-  (let ((max-p n)
+  (let ((max-processes n)
         (mutex (make-mutex)))
     
-    (define (inc-n) (set! n (+ n 1)))
+    (define (inc-n) (set! n (least (+ n 1) max-processes)))
     (define (dec-n) (set! n (- n 1)))
     (define (acquire-mutex) (mutex 'aquire))
         
@@ -504,3 +505,85 @@ x
     (lambda (m)
       (cond ((eq? m 'acquire) (acquire))
             ((eq? m 'release) (release))))))
+
+; just looking at some other answers online indicates
+; there could be a problem with the above, since
+; n is not protected by a mutex:
+(define (make-semaphore max-processes)
+  (let ((acquirable max-processes)
+        (client-mutex (make-mutex))
+        (protected (make-serializer)))
+    
+    (if (= n 0) (client-mutex 'aquire))
+    
+    (define inc-acquirable 
+       (protected 
+         (lambda () (if (not (> acquirable max-processes)) ;if too many releases, error?
+                        (set! acquirable (+ acquirable 1))))))
+    (define dec-acquirable
+       (protected 
+         (lambda () (set! acquirable (- acquirable 1)))))
+            
+    (define acquire
+      (do dec-acquirable
+          (if (<= n 0) (client-mutex 'aquire))))
+    
+    (define release
+      (do inc-acquirable 
+          (if (= n 0) (client-mutex 'release))))
+        
+    (lambda (m)
+      (cond ((eq? m 'acquire) (acquire))
+            ((eq? m 'release) (release))))))
+;b. TODO
+
+;Deadlock
+
+(define unique-id
+  (let ((current-id -1))
+    (lambda ()
+      (set! current-id (inc current-id))
+      current-id)))
+
+;Exercise 3.48
+(define make-account
+  (let ((current-id -1))
+    (lambda (balance)
+      (define (withdraw amount)
+        (if (>= balance amount)
+            (begin (set! balance (- balance amount))
+                   balance)
+            "Insufficient funds"))
+      (define (deposit amount)
+        (set! balance (+ balance amount))
+        balance)
+      (define unique-id
+        (lambda ()
+          (set! current-id (inc current-id))
+          current-id))
+      (let ((balance-serializer (make-serializer))
+            (id-number (unique-id)))
+        (define (dispatch m)
+          (cond ((eq? m 'withdraw) withdraw)
+                ((eq? m 'deposit) deposit)
+                ((eq? m 'balance) balance)
+                ((eq? m 'serializer) balance-serializer)
+                ((eq? m 'id) id-number)
+                (else (error "Unknown request -- MAKE-ACCOUNT"
+                             m))))
+        dispatch))))
+
+;I don't understand this problem yet
+(define (exchange account1 account2)
+  (let ((difference (- (account1 'balance)
+                       (account2 'balance))))
+    ((account1 'withdraw) difference)
+    ((account2 'deposit) difference)))
+
+;implementation using accessible serializers
+(define (serialized-exchange account1 account2)
+  (let ((serializer1 (account1 'serializer))
+        (serializer2 (account2 'serializer)))
+    ((serializer1 (serializer2 exchange))
+     account1
+     account2)))
