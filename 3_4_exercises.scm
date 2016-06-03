@@ -580,10 +580,60 @@ x
     ((account1 'withdraw) difference)
     ((account2 'deposit) difference)))
 
+(define (indexed-serializer account)
+  (list (account 'id) (account 'serializer)))
+
 ;implementation using accessible serializers
+(define (serialized-exchange account1 account2)
+  (let ((serializer1 (indexed-serializer account1))
+        (serializer2 (indexed-serializer account2)))
+    (let ((sorted-serializers 
+            (if (< (car serializer1) (car serializer2))
+                (list (cadr serializer1) (cadr serializer2))
+                (list (cadr serializer2) (cadr serializer1)))))
+      (((apply compose sorted-serializers) exchange)
+         account1
+         account2))))
+
+; deadlock is prevented because each process tries to enter the
+; lower numbered account first. Using the example, both
+; Peter and Paul's process try to enter the same serialized 
+; process at once. Peter's acquires a lock on a1 first, so 
+; Paul's process must wait to acquire a1. 
+
+;in the deadlocked example
+;Paul  ---> Sa1 ---> Sa2 (can't release a1 because a2 is protected)
+;                         (deadlock)
+;Peter ---> Sa2 -----> Sa1 (can't release a2 because a1 is protected)
+
+;The ordered serializers
+;Paul  ---> Sa1 ----> Sa2 ---> (done with Sa2)
+
+;Peter ---> Sa1 (waits)                       --> Sa2
+
+;I looked at some other answers online and they avoid using apply/compose
+;by simply defining serializer1 and serializer2 based on the id, but otherwise
+;the answer is just applying the serializers in the correct order. 
+;Modifying my own answer:
+
 (define (serialized-exchange account1 account2)
   (let ((serializer1 (account1 'serializer))
         (serializer2 (account2 'serializer)))
-    ((serializer1 (serializer2 exchange))
-     account1
-     account2)))
+    (let ((ordered-serializers 
+            (if (< (account1 'id) (account2 'id))
+                (list serializer1 serializer2)
+                (list serializer2 serializer1))))
+      (((apply compose ordered-serializers) exchange)
+         account1
+         account2))))
+
+;Exercise 3.49.
+
+;Will need to find a more concrete example, but in this situation
+;deadlock can occur simply because the process doesn't know which
+;resource has the smaller ID.
+;Maybe some process needs access to memory address 500 - 600, and
+;then conditionally needs to acquire 200 - 300 based on some runtime
+;input from the user. The process can't know ahead of time to enter
+;the procedure protecting 200-300 first, so deadlock can occur if
+;process 1 tries to acquire the memory in the opposite order
