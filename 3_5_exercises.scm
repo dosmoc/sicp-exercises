@@ -92,7 +92,7 @@
 ;We haven't seen how syntax is implemented yet. It seems delay
 ;is part of the Scheme standard (at 
 ;least in R5RS), but cons-stream is not. Here's
-;and implementation, using memo-proc discussed in the text:
+;an implementation, using memo-proc discussed in the text:
 (define (memo-proc proc)
   (let ((already-run? false) (result false))
     (lambda ()
@@ -126,7 +126,7 @@
 (define (stream-car stream) (car stream))
 (define (stream-cdr stream) (force (cdr stream)))
 
-;MIT-Scheme names promises explicitely, printing as #[promise 16]
+;MIT-Scheme names promises explicitly, printing as #[promise 16]
 ;where the use of thunks in
 ;SICP just prints as #[compound-procedure 27]
 ;It seems that this extra type info allows MIT scheme to use
