@@ -30,6 +30,57 @@
               0
               (filter prime? (enumerate-interval a b))))
 
+;Implementing delay and force
+
+;By this point, we've seen syntactic sugar for defining functions:
+;(define (some-name x y z) (..))
+;for local variables:
+;(let ((x 10) (y 11)) (+ x y))
+;cons-stream: (cons-stream <a> <b>) becomes (cons <a> (delay <b>))
+;and now delay, (delay <exp>) is sugar for (lambda () <exp>)
+;
+;We haven't seen how syntax is implemented yet. It seems delay
+;is part of the Scheme standard (at 
+;least in R5RS), but cons-stream is not. Here's
+;an implementation, using memo-proc discussed in the text:
+(define (memo-proc proc)
+  (let ((already-run? false) (result false))
+    (lambda ()
+      (if (not already-run?)
+          (begin (set! result (proc))
+                 (set! already-run? true)
+                 result)
+          result))))
+
+;from: http://stackoverflow.com/questions/14640833/how-is-the-sicp-cons-stream-implemented
+;using delay as in the text
+(define-syntax delay
+  (syntax-rules ()
+    ((_ exp) (memo-proc (lambda () exp)))))
+
+(define-syntax cons-stream
+  (syntax-rules ()
+    ((cons-stream a b)
+     (cons a (delay b)))))
+
+;no memoization:
+; (define-syntax delay
+;   (syntax-rules ()
+;     ((_ exp) (lambda () exp))))
+; 
+; (define-syntax cons-stream
+;   (syntax-rules ()
+;     ((cons-stream a b)
+;      (cons a (delay b)))))
+
+;the things we need for working with streams:
+(define (force delayed-object)
+  (delayed-object))
+(define the-empty-stream '())
+(define (stream-null? s) (null? s))
+(define (stream-car stream) (car stream))
+(define (stream-cdr stream) (force (cdr stream)))
+
 ;by note 54
 ;this are already defined in mit-scheme
 ;(define the-empty-stream '())
@@ -79,52 +130,6 @@
                  (stream-enumerate-interval 10000 1000000))))
 ;10009 
 ;that's cool
-
-;Implementing delay and force
-
-;By this point, we've seen syntactic sugar for defining functions:
-;(define (some-name x y z) (..))
-;for local variables:
-;(let ((x 10) (y 11)) (+ x y))
-;cons-stream: (cons-stream <a> <b>) becomes (cons <a> (delay <b>))
-;and now delay, (delay <exp>) is sugar for (lambda () <exp>)
-;
-;We haven't seen how syntax is implemented yet. It seems delay
-;is part of the Scheme standard (at 
-;least in R5RS), but cons-stream is not. Here's
-;an implementation, using memo-proc discussed in the text:
-(define (memo-proc proc)
-  (let ((already-run? false) (result false))
-    (lambda ()
-      (if (not already-run?)
-          (begin (set! result (proc))
-                 (set! already-run? true)
-                 result)
-          result))))
-
-;from: http://stackoverflow.com/questions/14640833/how-is-the-sicp-cons-stream-implemented
-(define-syntax cons-stream
-  (syntax-rules ()
-    ((cons-stream a b)
-     (cons a (memo-proc (lambda () b))))))
-
-;using delay instead
-(define-syntax delay
-  (syntax-rules ()
-    ((_ exp) (lambda () exp))))
-
-(define-syntax cons-stream
-  (syntax-rules ()
-    ((cons-stream a b)
-     (cons a (memo-proc (delay b))))))
-
-;the other things we need for working with streams:
-(define (force delayed-object)
-  (delayed-object))
-(define the-empty-stream '())
-(define (stream-null? s) (null? s))
-(define (stream-car stream) (car stream))
-(define (stream-cdr stream) (force (cdr stream)))
 
 ;MIT-Scheme names promises explicitly, printing as #[promise 16]
 ;where the use of thunks in
