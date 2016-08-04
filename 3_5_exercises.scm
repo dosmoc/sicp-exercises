@@ -23,7 +23,7 @@
           (else (iter (+ count 1) accum))))
   (iter a 0))
 
-;here, enumerate-interval constructs the entire interval
+;enumerate-interval constructs the entire interval
 ;at once before filtering
 (define (sum-primes a b)
   (accumulate +
@@ -31,7 +31,7 @@
               (filter prime? (enumerate-interval a b))))
 
 ;by note 54
-;this are already defined in mit-scheme
+;these are already defined in mit-scheme
 ;(define the-empty-stream '())
 ;(define (stream-null? s) (null? s))
 
@@ -118,6 +118,9 @@
     ((cons-stream a b)
      (cons a (memo-proc (delay b))))))
 
+;forget why I have direct thunk vs. delay examples above
+;maybe because delay is a useful abstraction in of itself?
+
 ;the other things we need for working with streams:
 (define (force delayed-object)
   (delayed-object))
@@ -137,14 +140,15 @@
 ;aren't hygenic by design).
 ;
 ;Clojure has defmacro, with macros for gensym based hygiene. I've 
-;actually used this and it seems straightforward. I do not yet
+;actually used this and it seems straightforward. This is 
+;the solution that Common Lisp uses. I do not yet
 ;know how Scheme's define-syntax works.
 ;
 ;PS Kernel is the other way around, as far as I can tell. Most
 ;Lisps evaluate the arguments, then apply the operand. A 
 ;special form is needed to introduce syntax... this special
 ;form (def-macro, define-syntax, defmacro, etc.) is a function;
-;that's run at compile time that transforms it's input
+;that's run at compile time that transforms its input
 ;into code without first evaluating the input.
 ;
 ;Kernel, on the other hand, makes this distinction (from http://fexpr.blogspot.com/2011/04/fexpr.html):
