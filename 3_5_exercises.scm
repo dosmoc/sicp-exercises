@@ -311,7 +311,7 @@
 
 ; right now I'm inclined to just say, don't mix delayed evaluation with state manipulation
 ; without a detailed explanation of the differences in the memoized vs not memoized evaluations
-; beyond the general notion that the memoized version doesn't recalculate the values, so 
+; beyond the general notion that the memoized version doesn't recalculate the values. Each 
 ; each (accum 1) ... (accum n) just returns the result previously calculated
 ; the (set! sum (+ x sum)) is run once each time accum is evaluated for a particular number
 
@@ -484,5 +484,365 @@
 
 ;Exercise 3.59
 
+;a.
+(define (div-streams s1 s2)
+  (stream-map / s1 s2))
+
 (define (integrate-series input-stream)
-  ())
+  (mul-streams (div-streams ones integers) input-stream))
+
+;b.
+(define exp-series
+  (cons-stream 1 (integrate-series exp-series)))
+
+(define zeros (cons-stream 0 zeros))
+
+(define (negative-stream the-stream)
+  (stream-map - zeros the-stream))
+
+(define cosine-series
+  (cons-stream 1 (negative-stream (integrate-series sine-series))))
+(define sine-series
+  (cons-stream 0 (integrate-series cosine-series)))
+
+;or use scale like here: http://community.schemewiki.org/?sicp-ex-3.59
+(define cosine-series
+  (cons-stream 1 (scale-stream (integrate-series sine-series) -1)))
+
+;Exercise 3.60
+;I couldn't figure this one out before looking at http://community.schemewiki.org/?sicp-ex-3.60,
+;but this answer:
+
+(define (mul-series s1 s2)
+  (cons-stream (* (stream-car s1)   ;cons the first multiplication onto the output stream
+                  (stream-car s2))
+               ;the rest of mul-series is the sums of the rest of s1 s2
+               ;and this series
+               (add-streams (mul-streams (stream-cdr s1)  
+                                         (stream-cdr s2))
+                            (mul-series s1 s2))))
+
+(define (make-mul-test)
+ (let ((the-test-stream  
+         (add-streams (mul-series cosine-series cosine-series)
+                      (mul-series sine-series sine-series))))
+   (lambda (x) (stream-ref the-test-stream x))))
+
+(define test-mul-series (make-mul-test))
+
+(test-mul-series 1)
+(test-mul-series 2)
+(test-mul-series 3)
+(test-mul-series 4)
+
+
+;I'm still not understanding this recursive definition
+;the series:  
+; (a0 + a1 x + a2 x2 + a3 x3 )(b0 + b1 x + b2 x2 + b3 x3 )
+; is (a0 * b0) + (the rest of the a series * the rest of the be series)
+;
+; using the thinking behind the section "Defining streams implicitly"
+;
+; the first element of mul-series is a0 * b0
+; the multiplication of the rest of a and b series added to mul-series
+
+;Exercise 3.61
+;todo understand power series and ... calculus
+
+;Exercise 3.62
+;todo understand power series and ... calculus
+
+
+;3.5.3  Exploiting the Stream Paradigm
+
+;Formulating iterations as stream processes
+(define (sqrt-stream x)
+  (define guesses
+    (cons-stream 1.0
+                 (stream-map (lambda (guess)
+                               (sqrt-improve guess x))
+                             guesses)))
+  guesses)
+
+(define (sqrt-improve guess x)
+  (average guess (/ x guess)))
+
+(define (average x y)
+  (/ (+ x y) 2))
+
+(define sqrt-2-aproximations (sqrt-stream 2))
+
+(stream-ref sqrt-2-aproximations 2)
+(stream-ref sqrt-2-aproximations 3)
+(stream-ref sqrt-2-aproximations 4)
+
+(define (pi-summands n)
+  (cons-stream (/ 1.0 n)
+               (stream-map - (pi-summands (+ n 2)))))
+(define pi-stream
+  (scale-stream (partial-sums (pi-summands 1)) 4))
+
+(stream-ref pi-stream 0)
+(stream-ref pi-stream 1)
+(stream-ref pi-stream 2)
+(stream-ref pi-stream 3)
+(stream-ref pi-stream 4)
+(stream-ref pi-stream 5)
+
+(define (euler-transform s)
+  (let ((s0 (stream-ref s 0))           ; Sn-1
+        (s1 (stream-ref s 1))           ; Sn
+        (s2 (stream-ref s 2)))          ; Sn+1
+    (cons-stream (- s2 (/ (square (- s2 s1))
+                          (+ s0 (* -2 s1) s2)))
+                 (euler-transform (stream-cdr s)))))
+
+(define pi-stream2 (euler-transform pi-stream))
+
+(stream-ref pi-stream2 0)
+(stream-ref pi-stream2 1)
+(stream-ref pi-stream2 2)
+(stream-ref pi-stream2 3)
+(stream-ref pi-stream2 4)
+(stream-ref pi-stream2 5)
+
+(define (make-tableau transform s)
+  (cons-stream s
+               (make-tableau transform
+                             (transform s))))
+
+(define (accelerated-sequence transform s)
+  (stream-map stream-car
+              (make-tableau transform s)))
+
+
+(define pi-stream3 (accelerated-sequence euler-transform pi-stream))
+
+(stream-ref pi-stream3 0)
+(stream-ref pi-stream3 1)
+(stream-ref pi-stream3 2)
+(stream-ref pi-stream3 3)
+(stream-ref pi-stream3 4)
+(stream-ref pi-stream3 5)
+
+;Exercise 3.63
+;Louise thinks this is more straightforward:
+(define (sqrt-stream x)
+  (cons-stream 1.0
+               (stream-map (lambda (guess)
+                             (sqrt-improve guess x))
+                           (sqrt-stream x))))
+
+;vs this:
+(define (sqrt-stream x)
+  (define guesses
+    (cons-stream 1.0
+                 (stream-map (lambda (guess)
+                               (sqrt-improve guess x))
+                             guesses)))
+  guesses)
+  
+;Alyssa says it is less efficient because 
+;it performs redundant calculations
+
+(sqrt-stream 4) ;gives us something like:
+
+(cons-stream 1.0
+               (delay (stream-map (lambda (guess)
+                                    (sqrt-improve guess 4))
+                                  (sqrt-stream 4))))
+
+(stream-ref (sqrt-stream 4) 0) ;just gives us the car
+;1.
+;forces at least once
+(stream-ref (sqrt-stream 4) 1)
+;2.5
+
+(cons-stream 1.0 
+      ((if (stream-null? s)
+           the-empty-stream
+           (cons-stream (proc (stream-car (sqrt-stream 4)))
+                        (stream-map proc (stream-cdr (sqrt-stream 4)))))))
+;it looks like we're calculating (sqrt-stream 4) twice here so instinctively
+;this feels like a recursive tree process like in 1.2.2
+;although the calculations are delayed, you get redundant computations at
+;each force, building a new stream at each level
+ 
+(cons-stream 1.0
+                 (stream-map (lambda (guess)
+                               (sqrt-improve guess 4))
+                             guesses))
+;forced at least once
+(cons-stream 1.0  
+      ((if (stream-null? s)
+           the-empty-stream
+           (cons-stream (proc (stream-car guesses))
+                        (stream-map proc (stream-cdr guesses))))))
+;guesses is the same stream -- You aren't re-calculating
+;at each branch, just accessing the previously calculated values
+
+;so should we instead do something like this:
+(define (mul-series s1 s2)
+  (define multiplied
+    (cons-stream (* (stream-car s1)   ;cons the first multiplication onto the output stream
+                    (stream-car s2))
+               ;the rest of mul-series is the sums of the rest of s1 s2
+               ;and this series
+                 (add-streams (mul-streams (stream-cdr s1)  
+                                           (stream-cdr s2))
+                              multiplied)))
+  multiplied)
+
+(test-mul-series 1)
+(test-mul-series 2)
+(test-mul-series 3)
+(test-mul-series 4)
+
+;this is equivalent, but my definition of mul-series is wrong
+
+;Exercise 3.64
+(define (stream-limit the-stream tolerance)
+  (define (examine the-stream)
+    (let ((element1 (stream-car the-stream))
+          (element2 (stream-car (stream-cdr the-stream))))
+      (if (< (abs (- element1 element2)) tolerance)
+          element2
+          (examine (stream-cdr the-stream)))))
+  (examine the-stream))
+
+
+(define (sqrt x tolerance)
+  (stream-limit (sqrt-stream x) tolerance))
+
+;Exercise 3.65
+(define -ones (cons-stream -1 -ones))
+
+(define (alternate s1 s2)
+  (cons-stream (stream-car s1) (alternate s2 s1)))
+
+(define ln2-denominators 
+  (let ((alt-sign (alternate ones -ones)))
+    (mul-streams integers alt-sign)))
+
+(define ln2
+  (div-streams ones ln2-denominators))
+
+;this implicit style using stream-map kind of makes me confused
+(define (ln2-summands n)
+  (cons-stream (/ 1.0 n)
+               (stream-map - (ln2-summands (+ n 1)))))
+;the sign alternates because we applying the procedure
+;to the stream-car of the stream itself
+
+(define ln2-stream 
+  (partial-sums (ln2-summands 1)))
+
+(define accelerated-ln2-stream
+  (accelerated-sequence euler-transform
+                        ln2-stream))
+
+(stream-ref accelerated-ln2-stream 0)
+(stream-ref accelerated-ln2-stream 1)
+(stream-ref accelerated-ln2-stream 2)
+(stream-ref accelerated-ln2-stream 3)
+(stream-ref accelerated-ln2-stream 4)
+;pretty quickly
+
+;Infinite streams of pairs
+
+
+(define (interleave s1 s2)
+  (if (stream-null? s1)
+      s2
+      (cons-stream (stream-car s1)
+                   (interleave s2 (stream-cdr s1)))))
+
+; this is different from my alternate procedure,
+; and more correct because it handles the null stream
+
+
+(define (pairs s t)
+  (cons-stream
+   (list (stream-car s) (stream-car t))
+   (interleave
+    (stream-map (lambda (x) (list (stream-car s) x))
+                (stream-cdr t))
+    (pairs (stream-cdr s) (stream-cdr t)))))
+
+(define int-pairs (pairs integers integers))
+
+(stream-filter (lambda (pair)
+                 (prime? (+ (car pair) (cadr pair))))
+               int-pairs)
+
+;Exercise 3.66
+;let's first take only the first part of 
+;an infinite stream
+;so it's easier to display
+(define (dec n) (- n 1))
+
+(define (take s n)
+  (if (= n 0)
+      the-empty-stream
+      (cons-stream (stream-car s) (take (stream-cdr s) (dec n)))))
+
+(display-stream (take int-pairs 20))
+;(1 1)
+;(1 2)
+;(2 2)
+;(1 3)
+;(2 3)
+;(1 4)
+;(3 3)
+;(1 5)
+;(2 4)
+;(1 6)
+;(3 4)
+;(1 7)
+;(2 5)
+;(1 8)
+;(4 4)
+;(1 9)
+;(2 6)
+;(1 10)
+;(3 5)
+;(1 11)
+;Value: done
+
+(define (take-while pred-fn s)
+  (define (taker s)
+    (let ((val (stream-car s)))
+       (if (pred-fn val)
+        the-empty-stream
+        (cons-stream val (taker (stream-cdr s))))))
+  (taker s))
+
+(display-stream
+  (take-while 
+    (lambda (x) (equal? x '(1 100)))
+    int-pairs))
+
+(define (count-stream s)
+  (define (iter s n)
+    (if (stream-null? s)
+        n
+        (iter (stream-cdr s) (+ n 1))))
+  
+  (iter s 0))
+
+(count-stream
+  (take-while 
+    (lambda (x) (equal? x '(1 100)))
+    int-pairs))
+;197 pairs
+
+(count-stream
+  (take-while (lambda (x) (equal? x '(99 100)))
+              int-pairs))
+;Aborting!: out of memory
+;GC #17: took:   0.25  (45%) CPU time,   0.26  (46%) real time; free: 3408073
+;GC #18: took:   0.25 (100%) CPU time,   0.24 (100%) real time; free: 3408131
+
+;whoa, why are we running out of memory?
+;the car increases veeery slowly
+;so it looks like it'll take a long time to get to '(99 100)
