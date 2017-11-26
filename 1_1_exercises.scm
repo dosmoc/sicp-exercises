@@ -121,7 +121,7 @@ circumferences
         ((= x 0) 0) 
         ((< x 0) (- x))))
 
- ;I initially was bothered by the two semicolons at the start
+ ;I initially was bothered by the two parenthesis at the start
  ;but I get their use now
  ;Clojure doesn't do this -- undecided which is visually better
  
