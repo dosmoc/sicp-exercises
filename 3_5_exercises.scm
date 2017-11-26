@@ -759,7 +759,7 @@
 (define (ln2-summands n)
   (cons-stream (/ 1.0 n)
                (stream-map - (ln2-summands (+ n 1)))))
-;the sign alternates because we applying the procedure
+;the sign alternates because we're applying the procedure
 ;to the stream-car of the stream itself
 
 (define ln2-stream 
