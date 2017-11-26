@@ -51,6 +51,23 @@
                  (set! already-run? true)
                  result)
           result))))
+;I was having a hard time understanding how this memo-proc could
+;memoize the results of multiple calls to a procedure, but
+;it must be used in conjunction with delay. For example:
+;(define (y x) (display x) (* x x))
+;(define z (delay (y 6)))
+;(force z)
+;6
+;value 36
+;(force z)
+;value 36
+;
+;memo-proc is used to memoize the results of delayed objects
+;like (delay (y 5)).
+;I'm not exactly sure, but usage with cons-stream means that 
+;you get the result and not a delayed object... in some computations
+;you don't need to even evaluate a delayed object 
+
 
 ;from: http://stackoverflow.com/questions/14640833/how-is-the-sicp-cons-stream-implemented
 ;using delay as in the text
@@ -62,6 +79,17 @@
   (syntax-rules ()
     ((cons-stream a b)
      (cons a (delay b)))))
+
+;I think it's very important to emphasize how much memoization plays a role in streams.
+;Without it, computations are often repeated; the tradeoff for computation is additional
+;space. Streams maybe be equivalent to mutation or iteration is terms of CPU, with
+;memoizagion, but strict memoization will usually result in more memory usage. For very
+;large computations, that could havepotentially result in slownes (in the base, we have
+;RAM out the wazoo now adays) because of swapping... (even swapping may not be a problem
+;soon).
+;Of course, memoization can be defined such that it frees storage.
+;Also it's interesting how memo-proc still must use a set! There's a point where
+;you can't abtract away mutation of state.
 
 ;no memoization:
 ; (define-syntax delay
