@@ -72,7 +72,71 @@
 ; (stream-car (cons-stream x y)) = x
 ; (stream-cdr (cons-stream x y)) = y
 
-;stream analogs
+; The essence of streams: the cdr of the stream be
+; evaluated when accessed by the stream-cdr procedure.
+; The rest of a stream is only evaluated when accessed.
+
+; Streams are the same as lists as a data abstraction.
+; The underlying difference is when elements are evaluated.
+; Delay returns a delayed object.
+; Force evaluates the object.
+
+; cons-stream and delay must both be special forms
+; because we don't want the cdr to be evaluated in
+; cons-stream, and we don't want the expression in delay
+; to be evaluated 
+; see the problem mentioned later on with using delay.
+; Anything dealing with delayed arguments must take a 
+; delayed argument or be written as a special form if
+; the language is written in an applicative language
+
+;delay without memoization
+(define-syntax delay
+  (syntax-rules ()
+    ((_ exp) (lambda () exp))))
+
+;but we'll just used memoized delay.
+(define (memo-proc proc)
+  (let ((already-run? false) (result false))
+    (lambda ()
+      (if (not already-run?)
+          (begin (set! result (proc))
+                 (set! already-run? true)
+                 result)
+          result))))
+
+;note on syntax rules: it uses pattern matching.
+;The underscore is a convention letting the programmer
+;know that the first position always matches the
+;key word... so here, _ always matches `delay`
+(define-syntax delay
+  (syntax-rules ()
+    ((_ exp) (memo-proc (lambda () exp)))))
+
+(define-syntax cons-stream
+  (syntax-rules ()
+    ((_ a b) (cons a (delay b)))))
+
+
+(define (stream-car stream) (car stream))
+(define (stream-cdr stream) (force (cdr stream)))
+
+;procedures we need for working with streams:
+(define (force delayed-object)
+  (delayed-object))
+(define the-empty-stream '())
+(define (stream-null? s) (null? s))
+(define (stream-car stream) (car stream))
+(define (stream-cdr stream) (force (cdr stream)))
+
+(define-syntax cons-stream
+  (syntax-rules ()
+    ((cons-stream a b)
+     (cons a (delay b)))))
+
+;stream analogs; We have to define these after
+;the redefinition of delay, force, and cons-stream
+;don't know why
 (define (stream-ref s n)
   (if (= n 0)
       (stream-car s)
@@ -102,68 +166,6 @@
        low
        (stream-enumerate-interval (+ low 1) high))))
 
-; The essence of streams: the cdr of the stream be
-; evaluated when accessed by the stream-cdr procedure.
-; The rest of a stream is only evaluated when accessed.
-
-; Streams are the same as lists as a data abstraction.
-; The underlying difference is when elements are evaluated.
-; Delay returns a delayed object.
-; Force evaluates the object.
-
-; cons-stream and delay must both be special forms
-; because we don't want the cdr to be evaluated in
-; cons-stream, and we don't want the expression in delay
-; to be evaluated 
-; see the problem mentioned later on with using delay.
-; Anything dealing with delayed arguments must take a 
-; delayed argument or be written as a special form if
-; the language is written in an applicative language
-
-(define (stream-car stream) (car stream))
-
-(define (stream-cdr stream) (force (cdr stream)))
-
-;procedures we need for working with streams:
-(define (force delayed-object)
-  (delayed-object))
-(define the-empty-stream '())
-(define (stream-null? s) (null? s))
-(define (stream-car stream) (car stream))
-(define (stream-cdr stream) (force (cdr stream)))
-
-;delay without memoization
-(define-syntax delay
-  (syntax-rules ()
-    ((_ exp) (lambda () exp))))
-
-(define-syntax cons-stream
-  (syntax-rules ()
-    ((cons-stream a b)
-     (cons a (delay b)))))
-
-
-;but we'll just used memoized delay.
-(define (memo-proc proc)
-  (let ((already-run? false) (result false))
-    (lambda ()
-      (if (not already-run?)
-          (begin (set! result (proc))
-                 (set! already-run? true)
-                 result)
-          result))))
-
-;note on syntax rules: it uses pattern matching.
-;The underscore is a convention letting the programmer
-;know that the first position always matches the
-;key word... so here, _ always matches `delay`
-(define-syntax delay
-  (syntax-rules ()
-    ((_ exp) (memo-proc (lambda () exp)))))
-
-(define-syntax cons-stream
-  (syntax-rules ()
-    ((_ a b) (cons a (delay b)))))
 
 ;The stream implementation in action
 (define (stream-filter pred stream)
@@ -179,7 +181,6 @@
  (stream-cdr
   (stream-filter prime?
                  (stream-enumerate-interval 10000 1000000))))
-
 
 ;Exercise 3.50
 ;Just getting this from my last attempt:
@@ -237,7 +238,6 @@
 (stream-ref x 3);
 ;Value: 3
 
-
 ;This isn't occuring because of memoization like 
 ;previously thought. It's because of the behavior of 
 ;cons-stream
@@ -265,35 +265,214 @@
             (delay (stream-map proc (stream-cdr s))))))
 
 ; delay is matched and re-written to:
-(define (stream-map proc s)
-  (if (stream-null? s)
-      the-empty-stream
-      (cons (proc (stream-car s))
-            (lambda () (stream-map proc (stream-cdr s))))))
+;(define (stream-map proc s)
+;  (if (stream-null? s)
+;      the-empty-stream
+;      (cons (proc (stream-car s))
+;            (lambda () (stream-map proc (stream-cdr s))))))
 
-filling in the procedure:
+;filling in the procedure:
 
-(define (stream-map proc s)
-  (if (stream-null? s)
-      the-empty-stream
-      (cons (show 0) ;this one is evaluated because cons is applicative order 
-            (lambda () (stream-map show (stream-cdr s)))))) ;the thunk isn't evaluated until we call stream-ref:
-
-(define (stream-ref s n)
-  (if (= n 0)
-      (stream-car s)
-      (stream-ref (stream-cdr s) (- n 1))))
-
-(stream-ref x 5)
-;Here stream cdr from the stream-ref at this point is something like:
-(stream-cdr (lambda () (stream-map show (enumerate-interval 1 10))))
-;which is
-(force (lambda () (stream-map show (stream-cdr s))))
-;which is
-((lambda () (stream-map show (enumerate-interval 1 10))))
-;which is 
-(stream-map show (enumerate-interval 1 10))
+;(define (stream-map proc s)
+;  (if (stream-null? s)
+;      the-empty-stream
+;      (cons (show 0) ;this one is evaluated because cons is applicative order 
+;            (lambda () (stream-map show (stream-cdr s)))))) ;the thunk isn't evaluated until we call stream-ref:
+;
+;(define (stream-ref s n)
+;  (if (= n 0)
+;      (stream-car s)
+;      (stream-ref (stream-cdr s) (- n 1))))
+;
+;(stream-ref x 5)
+;;Here stream cdr from the stream-ref at this point is something like:
+;(stream-cdr (lambda () (stream-map show (enumerate-interval 1 10))))
+;;which is
+;(force (lambda () (stream-map show (stream-cdr s))))
+;;which is
+;((lambda () (stream-map show (enumerate-interval 1 10))))
+;;which is 
+;(stream-map show (enumerate-interval 1 10))
 ;which finally shows 1 until we get to 5
 ;This isn't a completely accurate re-writing / evaluation of stuff, but it's 
 ;mainly showing show cons-stream delays the evaluation of all expressions... 
 ;even those with a stream-cdr
+
+;Incorporate the above answer into 3_5_exercises.scm
+
+;Exercise 3.52.  Consider the sequence of expressions
+
+;See the old version.
+
+
+;3.5.2  Infinite Streams
+
+(define (integers-starting-from n)
+  (cons-stream n (integers-starting-from (+ n 1))))
+
+(define integers (integers-starting-from 1))
+
+(define (divisible? x y) (= (remainder x y) 0))
+(define no-sevens
+  (stream-filter (lambda (x) (not (divisible? x 7)))
+                 integers))
+
+
+(stream-ref no-sevens 100)
+;Value: 117
+
+(define (fibgen a b)
+  (cons-stream a (fibgen b (+ a b))))
+(define fibs (fibgen 0 1))
+
+(define (fibgen a b)
+  (cons-stream a (fibgen b (+ a b))))
+(define fibs (fibgen 0 1))
+
+(define (sieve stream)
+  (cons-stream
+   (stream-car stream)
+   (sieve (stream-filter
+           (lambda (x)
+             (not (divisible? x (stream-car stream))))
+           (stream-cdr stream)))))
+
+(define primes (sieve (integers-starting-from 2)))
+(stream-ref primes 50)
+;223
+
+(stream-ref primes 19)
+
+;Is this really the Sieve of Eratosthenes:
+;O'Neill, Melissa E., "The Genuine Sieve of Eratosthenes", Journal of Functional Programming, Published online by Cambridge University Press 9 October 2008 doi:10.1017/S0956796808007004, pp. 10, 11 (contains two incremental sieves in Haskell: a priority-queue–based one by O'Neill and a list–based, by Richard Bird).
+
+(stream-car (integers-starting-from 2))
+
+;Defining streams implicitly
+
+(define ones (cons-stream 1 ones))
+
+(define (add-streams s1 s2)
+  (stream-map + s1 s2))
+
+(define integers (cons-stream 1 (add-streams ones integers)))
+
+(define fibs
+  (cons-stream 0
+               (cons-stream 1
+                            (add-streams (stream-cdr fibs)
+                                         fibs))))
+
+
+;This definition says that fibs is a stream beginning with 0 and 1, such that the rest of the stream can be generated by adding fibs to itself shifted by one place:
+;
+;1   1   2   3   5   8   13  21  ... = (stream-cdr fibs)
+;0   1   1   2   3   5   8   13  ... = fibs
+;0   1   1   2   3   5   8   13  21  34  ... = fibs
+
+(define (scale-stream stream factor)
+  (stream-map (lambda (x) (* x factor)) stream))
+
+(define double (cons-stream 1 (scale-stream double 2)))
+
+(stream-ref double 0)
+;1
+(stream-ref double 1)
+;2
+(stream-ref double 2)
+;4
+(stream-ref double 3)
+;8
+
+(define (square n) (* n n))
+
+(define primes
+  (cons-stream
+   2
+   (stream-filter prime? (integers-starting-from 3))))
+
+(define (prime? n)
+  (define (iter ps)
+    (cond ((> (square (stream-car ps)) n) true)
+          ((divisible? n (stream-car ps)) false)
+          (else (iter (stream-cdr ps)))))
+  (iter primes))
+
+;Exercise 3.53:
+
+(define s (cons-stream 1 (add-streams s s)))
+
+;Let's re-write this...
+;s is defined as (add-streams (cons-stream 1 s) (cons-stream 1 s))... which means s first element
+;is 2. Then you (add-streams (cons-stream 2 s) (cons-stream 2 s))... whicih means the second
+;element of s is 4.... it's powers of two
+
+;The zeroeth element turns out to be 1, which makes sense since 2⁰ = 1
+
+;It's like two undulating branches:
+;
+;  /--1/--2/--4 ; s, shifted
+; 1   2   4   8 ; the stream, s
+;  \--1\--2\--4 ; s, shifted
+;
+
+;Exercise 3.54
+
+(define (mul-streams s1 s2)
+  (stream-map * s1 s2))
+
+;let's test it out
+;
+
+(define squares (mul-streams integers integers))
+
+(stream-ref squares 0)
+;1
+(stream-ref squares 1)
+;4
+(stream-ref squares 2)
+;9
+(stream-ref squares 3)
+;16
+(stream-ref squares 4)
+;25
+
+(define factorials (cons-stream 1 (mul-streams factorials (stream-cdr integers))))
+
+; need to get someting like this
+; ----2---3---4   ; integers starting from one
+; 1   2   6   24  ; factorials
+; ----1\--2\--6   ; factorials shifted
+;
+(stream-ref factorials 0)
+(stream-ref factorials 1)
+(stream-ref factorials 2)
+(stream-ref factorials 3)
+(stream-ref factorials 4)
+
+;stream-map is a method of combining streams
+;the shifting of the factorials is achieved
+;by it being the part consed onto
+;whereas the integers are not shifted by
+;using the stream-cdr
+
+Exercise 3.55
+
+;
+; 1---2---3---4   ;integers
+; 1   3   6   10  ;partial sums
+;  \--1\--3\--6   ;partial sums shifted 
+
+(define (partial-sums the-stream) 
+  (cons-stream (stream-car the-stream)
+    (add-streams (stream-cdr the-stream) (partial-sums the-stream))))
+
+(define partial-sum-of-integers (partial-sums (integers-starting-from 1)))
+
+(stream-ref partial-sum-of-integers 0)
+(stream-ref partial-sum-of-integers 1)
+(stream-ref partial-sum-of-integers 2)
+(stream-ref partial-sum-of-integers 3)
+(stream-ref partial-sum-of-integers 4)
+(stream-ref partial-sum-of-integers 5)
+
