@@ -1,6 +1,28 @@
 ;2.5.3  Example: Symbolic Algebra
 ;Arithmetic on polynomials
 
+(load "./2_5_exercises.scm")
+
+;a simple polynomial in x:
+;5x² + 2x + 7 
+
+;a polynomial in x with coefficients that are polynomials in y:
+;(y² + 1)x³ + (2y)x + 1 
+
+;Are (= '(5x² + 2x + 7 ) '(5x² + 2x + 7 ))?
+;Yes if we are considering them as mathematical functions,
+;no if they are a syntatic form
+;
+; should the system recognize this?
+; how should it be represented?
+;
+; SICP makes the decision that a polynomial will be
+; a particular syntactic form
+;
+; - just addition and multiplication
+; - polynomials to be combined will have the same indeterminate
+
+
 (define (install-polynomial-package)
   ;; internal procedures
   ;; representation of poly
@@ -11,6 +33,7 @@
   (define (same-variable? v1 v2)
     (and (variable? v1) (variable? v2) (eq? v1 v2)))  
   (define (variable? x) (symbol? x))
+  
   ;; representation of terms and term lists
   (define (adjoin-term term term-list)
     (if (=zero? (coeff term))
@@ -72,6 +95,10 @@
            (make-term (+ (order t1) (order t2))
                       (mul (coeff t1) (coeff t2)))
            (mul-term-by-all-terms t1 (rest-terms L))))))
+  
+  (define (=zero? p)
+    (= 0 (reduce + 0 (map coeff (term-list p)))))
+  
   ;; interface to rest of the system
   (define (tag p) (attach-tag 'polynomial p))
   (put 'add '(polynomial polynomial) 
@@ -80,7 +107,16 @@
        (lambda (p1 p2) (tag (mul-poly p1 p2))))
   (put 'make 'polynomial
        (lambda (var terms) (tag (make-poly var terms))))
+  
+  ;From Exercise 2.87
+  (put '=zero? '(polynomial) =zero?)
+  
+  (put 'make 'polynomial
+       (lambda (var terms) (tag (make-poly var terms))))
+
   'done)
+
+(install-polynomial-package)
 
 (define (make-polynomial var terms)
   ((get 'make 'polynomial) var terms))
@@ -100,20 +136,36 @@
 (define (order term) (car term))
 (define (coeff term) (cadr term))
 
-(make-term 100 1)
+(define polynomial-terms-b '((100 1) (2 2) (0 1)))
 
-(let ((coeff (coeff (make-term 0 1))))
-  (= coeff 0))
+(define polynomial-terms-b
+  (adjoin-term (make-term 100 1)
+    (adjoin-term (make-term 2 2))
+      (adjoin-term (make-term 0 1) '())))
 
-;but what if the coefficient is a polynomial? We test to see
-;if it's a list:
-;We're assuming we can't write something like this:
-; 0x^3 + 0x^2 - 0
-;otherwise, you'd have to test if the polynomial itself 
-;simplified to zero, though maybe that could be handled
-;through coercion?
-(let ((coeff (coeff (make-term 0 '((100 1) (2 2) (0 1))))))
-  (and (not (list? coeff)) (= coeff 0)))
+(adjoin-term (make-term 1 1) '())
+
+(map type-tag '((1 1)))
+
+ (coeff (make-term (make-scheme-number 1) (make-scheme-number 1)))
+ 
+ (type-tag 1)
+
+;=zero? for a polynomial must test to see if
+;all coefficients of the polynomial are zero
+;assuming we're using the representation above
+
+;If the sum of coefficients is zero, the polynomial
+;is zeros
+(= 0 (reduce add 0 (map coeff polynomial-terms-)))
+;#f
+
+(define polynomial-terms-c '((100 0) (2 0) (0 0)))
+(= 0 (reduce add 0 (map coeff polynomial-c)))
+;#t
+
+;see the procedure added to the polynomial package above
+(=zero? (make-polynomial 'x polynomial-terms-c))
 
 ;Exercise 2.88
 
