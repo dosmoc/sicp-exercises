@@ -75,19 +75,19 @@
                                 (rest-terms L2)))))))))
 
   (define (mul-poly p1 p2)
-  (if (same-variable? (variable p1) (variable p2))
-      (make-poly (variable p1)
-                 (mul-terms (term-list p1)
-                            (term-list p2)))
-      (error "Polys not in same var -- MUL-POLY"
-             (list p1 p2))))
+    (if (same-variable? (variable p1) (variable p2))
+        (make-poly (variable p1)
+                   (mul-terms (term-list p1)
+                              (term-list p2)))
+        (error "Polys not in same var -- MUL-POLY"
+               (list p1 p2))))
   ;<procedures used by mul-poly>
   (define (mul-terms L1 L2)
     (if (empty-termlist? L1)
         (the-empty-termlist)
         (add-terms (mul-term-by-all-terms (first-term L1) L2)
                    (mul-terms (rest-terms L1) L2))))
-  (define (mul-terms-by-all-terms t1 L)
+  (define (mul-term-by-all-terms t1 L)
     (if (empty-termlist? L)
         (the-empty-termlist)
         (let ((t2 (first-term L)))
@@ -95,10 +95,7 @@
            (make-term (+ (order t1) (order t2))
                       (mul (coeff t1) (coeff t2)))
            (mul-term-by-all-terms t1 (rest-terms L))))))
-  
-  (define (=zero? p)
-    (= 0 (reduce + 0 (map coeff (term-list p)))))
-  
+    
   ;; interface to rest of the system
   (define (tag p) (attach-tag 'polynomial p))
   (put 'add '(polynomial polynomial) 
@@ -109,17 +106,36 @@
        (lambda (var terms) (tag (make-poly var terms))))
   
   ;From Exercise 2.87
-  (put '=zero? '(polynomial) =zero?)
+  (put '=zero? '(polynomial) 
+       (lambda (p) 
+         (= 0 (reduce add 0 (map coeff (term-list p))))))
   
-  (put 'make 'polynomial
-       (lambda (var terms) (tag (make-poly var terms))))
-
   'done)
 
 (install-polynomial-package)
 
 (define (make-polynomial var terms)
   ((get 'make 'polynomial) var terms))
+
+;for now let's use the basic apply generic
+(define (apply-generic op . args)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (if proc
+          (apply proc (map contents args))
+          (error
+            "No method for these types -- APPLY-GENERIC"
+            (list op type-tags))))))
+
+(define polynomial-terms-b '((100 1) (2 2) (0 1)))
+(define polynomial-terms-c '((100 0) (2 0) (0 0)))
+(define polynomial-terms-d '((100 5) (2 3) (0 1)))
+
+(add (make-polynomial 'x polynomial-terms-c) (make-polynomial 'x polynomial-terms-b))
+;Value 64: (polynomial x (100 5) (2 7) (0 8))
+
+(mul (make-polynomial 'x polynomial-terms-d) (make-polynomial 'x polynomial-terms-b))
+;Value 65: (polynomial x (200 5) (102 13) (100 6) (4 6) (2 5) (0 1))
 
 ;Exercise 2.87
 ;lets define them outside of the package to test
@@ -136,13 +152,6 @@
 (define (order term) (car term))
 (define (coeff term) (cadr term))
 
-(define polynomial-terms-b '((100 1) (2 2) (0 1)))
-
-(define polynomial-terms-b
-  (adjoin-term (make-term 100 1)
-    (adjoin-term (make-term 2 2))
-      (adjoin-term (make-term 0 1) '())))
-
 (adjoin-term (make-term 1 1) '())
 
 (map type-tag '((1 1)))
@@ -157,17 +166,35 @@
 
 ;If the sum of coefficients is zero, the polynomial
 ;is zeros
-(= 0 (reduce add 0 (map coeff polynomial-terms-)))
+(= 0 (reduce add 0 (map coeff polynomial-terms-b)))
 ;#f
 
-(define polynomial-terms-c '((100 0) (2 0) (0 0)))
 (= 0 (reduce add 0 (map coeff polynomial-c)))
 ;#t
 
 ;see the procedure added to the polynomial package above
 (=zero? (make-polynomial 'x polynomial-terms-c))
+(=zero? (make-polynomial 'x polynomial-terms-b))
+
+(make-polynomial 'x polynomial-terms-b)
+(make-polynomial 'x polynomial-terms-c)
+(make-polynomial 'nil polynomial-terms-c)
+
+; We haven't defined equ? to test for =zero?
+; We could say that two polynomials are equ? if they
+; have the same variable and the same term-list.
+; However, equ? would have to adjust the number of terms
+; to eachother if there are different numbers of terms
+
+; I've just read a little on wikipedia about polynomial
+; identity testing... p¹ = p² if p¹ - p² = 0. So you 
+; could use polynomial negation + addition to determine
+; if a polynomial is equ? and if it's =zero?
 
 ;Exercise 2.88
+
+(define (negate n)
+  (apply-generic 'mul -1 n))
 
 ;Exercise 2.89
 
