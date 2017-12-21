@@ -341,7 +341,8 @@
 ; without a detailed explanation of the differences in the memoized vs not memoized evaluations
 ; beyond the general notion that the memoized version doesn't recalculate the values. Each 
 ; each (accum 1) ... (accum n) just returns the result previously calculated
-; the (set! sum (+ x sum)) is run once each time accum is evaluated for a particular number
+; the (set! sum (+ x sum)) is run once each time accum is evaluated for a particular number.
+; In the non-memoized version it always is run
 
 ;3.5.2  Infinite Streams
 
@@ -392,6 +393,7 @@
   (stream-map + s1 s2))
 
 (define integers (cons-stream 1 (add-streams ones integers)))
+;defining integers this way feels a little like peano arithmetic
 
 (define fibs
   (cons-stream 0
@@ -469,6 +471,10 @@
 
 ;Exercise 3.57
 ;Show this
+;I dont' think its so difficult to show if one understands that recursive
+;fibonnaci calculations are already exponential, delaying doesn't really solve
+;the problem without memoization. It'd probably be pretty similar to showing
+;a recursive procedure is exponential.
 
 ;Exercise 3.58
 
