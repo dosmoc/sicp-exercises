@@ -238,7 +238,7 @@
 (stream-ref x 3);
 ;Value: 3
 
-;This isn't occuring because of memoization like 
+;This isn't occuring because of memoization like I
 ;previously thought. It's because of the behavior of 
 ;cons-stream
 ;Using the simpler stream map def:
@@ -475,4 +475,61 @@ Exercise 3.55
 (stream-ref partial-sum-of-integers 3)
 (stream-ref partial-sum-of-integers 4)
 (stream-ref partial-sum-of-integers 5)
+
+; Thinking about how regular lists are mixed with streams in Clojure be
+; makes it possible to define procedures that realize and entire 
+; sequence in memory instead of streaming it when this is not the
+; intention
+; I wonder if Clojure provides compile time warnings for such 
+; mixing, or if it could only warn at runtime.
+; Are there any systems that provide runtime warnings for dynamic
+; languages?
+
+;Exercise 3.56
+; Enumerate, in ascending order, all positive integers with no
+; prime factors other than 2, 3, or 5
+;
+; facts:
+; - s begins  with 1
+; - the elements of (scale-stream s 2) are also elements of s
+; - the same is true for (scale-stream s 3) and (scale-steam 5 s)
+
+
+(define (merge s1 s2)
+  (cond ((stream-null? s1) s2)
+        ((stream-null? s2) s1)
+        (else
+          (let ((s1car (stream-car s1))
+                (s2car (stream-car s2)))
+            (cond ((< s1car s2car)
+                   (cons-stream s1car (merge (stream-cdr s1) s2)))
+                  ((> s1car s2car)
+                   (cons-stream s2car (merge s1 (stream-cdr s2))))
+                  (else
+                    (cons-stream s1car
+                                 (merge (stream-cdr s1)
+                                        (stream-cdr s2)))))))))
+
+(define S (cons-stream 1 (merge (scale-stream S 5)
+                                (merge (scale-stream S 3)
+                                       (scale-stream S 2)))))
+
+(stream-ref S 0)
+(stream-ref S 1)
+(stream-ref S 2)
+(stream-ref S 3)
+(stream-ref S 4)
+(stream-ref S 5)
+(stream-ref S 6)
+
+;Exercise 3.57
+
+; Probably the the growth with respect to n
+; is linear
+
+;Exericise 3.58
+
+;See old answer
+
+;Exercise 3.59
 
