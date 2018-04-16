@@ -165,7 +165,7 @@
 ;assuming we're using the representation above
 
 ;If the sum of coefficients is zero, the polynomial
-;is zeros
+;is zero
 (= 0 (reduce add 0 (map coeff polynomial-terms-b)))
 ;#f
 
@@ -184,7 +184,7 @@
 ; We could say that two polynomials are equ? if they
 ; have the same variable and the same term-list.
 ; However, equ? would have to adjust the number of terms
-; to eachother if there are different numbers of terms
+; to each other if there are different numbers of terms
 
 ; I've just read a little on wikipedia about polynomial
 ; identity testing... p¹ = p² if p¹ - p² = 0. So you 
