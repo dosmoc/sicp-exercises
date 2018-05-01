@@ -474,7 +474,7 @@
 ;I dont' think its so difficult to show if one understands that recursive
 ;fibonnaci calculations are already exponential, delaying doesn't really solve
 ;the problem without memoization. It'd probably be pretty similar to showing
-;a recursive procedure is exponential.
+;a recursive procedure grows exponentially.
 
 ;Exercise 3.58
 
@@ -582,6 +582,8 @@
 
 ;Exercise 3.61
 ;todo understand power series and ... calculus
+
+(define )
 
 ;Exercise 3.62
 ;todo understand power series and ... calculus

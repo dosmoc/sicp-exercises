@@ -261,7 +261,7 @@
 (define (stream-map proc s)
   (if (stream-null? s)
       the-empty-stream
-      (cojs (proc (stream-car s))
+      (cons (proc (stream-car s))
             (delay (stream-map proc (stream-cdr s))))))
 
 ; delay is matched and re-written to:
@@ -299,6 +299,15 @@
 ;even those with a stream-cdr
 
 ;Incorporate the above answer into 3_5_exercises.scm
+
+;Okay, lets go back to the stream-map with an arbitrary number of streams
+(define (stream-map proc . argstreams)
+  (if (stream-null? (car argstreams))
+      the-empty-stream
+      (cons-stream
+       (apply proc (map stream-car argstreams))
+       (apply stream-map
+              (cons proc (map stream-cdr argstreams))))))
 
 ;Exercise 3.52.  Consider the sequence of expressions
 
@@ -456,7 +465,7 @@
 ;whereas the integers are not shifted by
 ;using the stream-cdr
 
-Exercise 3.55
+;Exercise 3.55
 
 ;
 ; 1---2---3---4   ;integers
@@ -477,7 +486,7 @@ Exercise 3.55
 (stream-ref partial-sum-of-integers 5)
 
 ; Thinking about how regular lists are mixed with streams in Clojure be
-; makes it possible to define procedures that realize and entire 
+; makes it possible to define procedures that realize an entire 
 ; sequence in memory instead of streaming it when this is not the
 ; intention
 ; I wonder if Clojure provides compile time warnings for such 
@@ -493,7 +502,6 @@ Exercise 3.55
 ; - s begins  with 1
 ; - the elements of (scale-stream s 2) are also elements of s
 ; - the same is true for (scale-stream s 3) and (scale-steam 5 s)
-
 
 (define (merge s1 s2)
   (cond ((stream-null? s1) s2)
@@ -524,7 +532,7 @@ Exercise 3.55
 
 ;Exercise 3.57
 
-; Probably the the growth with respect to n
+; Probably the growth with respect to n
 ; is linear
 
 ;Exericise 3.58
@@ -533,3 +541,82 @@ Exercise 3.55
 
 ;Exercise 3.59
 
+; What is a power series? 
+; I don't know what a power series is, but from the text
+; it looks like its an series of terms that defines a function
+; So its an infinite series of terms that can be used to
+; represent a function
+
+; a. The integral of the series a₀ + a₁x + a₂x² + a₃x³ ... is 
+; the series c + a₀x + 1/2a₁x² + 1/3a₂x³ + 1/4a₃x⁴ ...
+
+(define (div-streams s1 s2)
+  (stream-map / s1 s2))
+
+
+(define 1-div-n-series (div-streams ones integers))
+
+(stream-ref 1-div-n-series 0)
+(stream-ref 1-div-n-series 1)
+(stream-ref 1-div-n-series 2)
+(stream-ref 1-div-n-series 3)
+
+(define (integrate-series the-series)
+  (mul-streams 1-div-n-series the-series))
+
+;b. The function x  ex is its own derivative. This implies that ex 
+;   and the integral of ex are the same series, except for the constant term, 
+; which is e0 = 1. Accordingly, we can generate the series for ex as
+
+(define exp-series
+  (cons-stream 1 (integrate-series exp-series)))
+
+(stream-ref exp-series 0)
+(stream-ref exp-series 1)
+(stream-ref exp-series 2)
+(stream-ref exp-series 3)
+(stream-ref exp-series 4)
+
+;rest of this is from old answer
+(define cosine-series
+  (cons-stream 1 (negative-stream (integrate-series sine-series))))
+(define sine-series
+  (cons-stream 0 (integrate-series cosine-series)))
+
+;or use scale like here: http://community.schemewiki.org/?sicp-ex-3.59
+(define cosine-series
+  (cons-stream 1 (scale-stream (integrate-series sine-series) -1)))
+
+;Exercise 3.60
+;I couldn't figure this one out before looking at http://community.schemewiki.org/?sicp-ex-3.60,
+;but this answer:
+
+(define (mul-series s1 s2)
+  (cons-stream (* (stream-car s1)   ;cons the first multiplication onto the output stream
+                  (stream-car s2))
+               ;the rest of mul-series is the sums of the rest of s1 s2
+               ;and this series
+               (add-streams (mul-streams (stream-cdr s1)  
+                                         (stream-cdr s2))
+                            (mul-series s1 s2))))
+
+;Exercise 3.61.
+
+; series S
+; constantterm is 1
+; we want 1/S
+; the series X such that S * X = 1 (multiplying a ratio by its inverse gives 1)
+; rewriting to S = 1 + Sᵣ where S_R is the part of S after the constant term
+
+;thus 
+; S * X = 1
+; (1 + S_R) * X = 1
+; X + S_R * X = 1
+; X = 1 - S_R * X
+
+(define invert-unit-series s
+  (cons-stream 1 (mul-series (scale-stream (stream-cdr s) -1)  
+                             invert-unit-series)))
+
+;Exercise 3.62
+;Latersss
