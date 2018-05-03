@@ -561,7 +561,53 @@
 (cond->if example-cond)
 ;(if (assoc (quote b) (quote ((a 1) (b 2)))) (cadr (assoc (quote b) (quote ((a 1) (b 2))))) false)
 
-;but maybe we want something more like so <test> is evaluated only oncet:
+;but maybe we want something more like so <test> is evaluated only once12t:
 '(let ((test-val (assoc (quote b) (quote ((a 1) (b 2))))))
    (if test-val (cadr test-val) false))
 ;write something to do that later
+
+;Exercise 4.6
+
+(define test-vars '((x 5) (y 6)))
+
+(define (binding-vars bindings)
+  (define (accumulate-vars vars bindings)
+    (if (null? bindings)
+        vars
+        (accumulate-vars (cons (caar bindings) vars) (cdr bindings))))
+  
+  (accumulate-vars '() bindings))
+
+(binding-vars test-vars)
+(y x)
+;there should be a test to see that the names are unique
+;possibly in make-procudure
+
+(define (binding-exprs bindings)
+  (define (accumulate-exprs exps bindings)
+    (if (null? bindings)
+        exps
+        (accumulate-exprs (cons (cadar bindings) exps) (cdr bindings))))
+  
+  (accumulate-exprs '() bindings))
+
+(binding-exprs test-vars)
+;(6 5)
+
+(define test-let '(let ((x 1) (y 2)) 5))
+
+(define (let-bindings exp)
+  (cadr exp))
+
+(define (let-body exp)
+  (cddr exp))
+
+(binding-vars (let-bindings test-let))
+
+(define (let->combination exp)
+  (cons (make-lambda (binding-vars (let-bindings exp))   
+                     (let-body exp))
+        (binding-exprs (let-bindings exp))))
+
+(let->combination test-let)
+;((lambda (y x) 5) 2 1)
