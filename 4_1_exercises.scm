@@ -611,3 +611,47 @@
 
 (let->combination test-let)
 ;((lambda (y x) 5) 2 1)
+
+;4.7
+
+(let* ((x 3)
+       (y (+ x 2))
+       (z (+ x y 5)))
+  (* x z))
+
+;should expand to:
+
+(let ((x 3))
+  (let ((y (+ x 2)))
+    (let ((z (+ x y 4)))
+      (* x z))))
+
+(define test-let* 
+  '(let* ((x 3)
+       (y (+ x 2))
+       (z (+ x y 5)))
+     (* x z)))
+
+(define (let*->nested-lets exp)
+  (define (accumulate-lets lets bindings body)
+    (if (null? bindings)
+        body
+        (cons 'let (list (list (car bindings)) (accumulate-lets lets (cdr bindings) body)))))
+  
+  (accumulate-lets '() (cadr exp) (caddr exp)))
+
+(caddr test-let*)
+
+(let*->nested-lets test-let*)
+
+;(let ((x 3)) (let ((y (+ x 2))) (let ((z (+ x y 5))) (* x z))))
+;which is:
+
+(let ((x 3)) 
+  (let ((y (+ x 2))) 
+    (let ((z (+ x y 5))) 
+      (* x z))))
+
+;the second part of the question makes me thing. If we have a let*? test,
+;then we are essentially doing:
+(eval '(let ((x 3)) (let ((y (+ x 2))) (let ((z (+ x y 5))) (* x z)))) env)
