@@ -574,12 +574,14 @@
   (define (accumulate-vars vars bindings)
     (if (null? bindings)
         vars
-        (accumulate-vars (cons (caar bindings) vars) (cdr bindings))))
+        (cons (caar bindings) (accumulate-vars vars (cdr bindings)))))
   
   (accumulate-vars '() bindings))
 
+(caar test-vars)
+
 (binding-vars test-vars)
-(y x)
+;(x y)
 ;there should be a test to see that the names are unique
 ;possibly in make-procudure
 
@@ -587,12 +589,12 @@
   (define (accumulate-exprs exps bindings)
     (if (null? bindings)
         exps
-        (accumulate-exprs (cons (cadar bindings) exps) (cdr bindings))))
+        (cons (cadar bindings) (accumulate-exprs exps (cdr bindings)))))
   
   (accumulate-exprs '() bindings))
 
 (binding-exprs test-vars)
-;(6 5)
+;(5 6)
 
 (define test-let '(let ((x 1) (y 2)) 5))
 
@@ -611,6 +613,8 @@
 
 (let->combination test-let)
 ;((lambda (y x) 5) 2 1)
+
+(define (let? expr) (tagged-list? expr 'let))
 
 ;4.7
 
@@ -636,7 +640,8 @@
   (define (accumulate-lets lets bindings body)
     (if (null? bindings)
         body
-        (cons 'let (list (list (car bindings)) (accumulate-lets lets (cdr bindings) body)))))
+        (cons 'let (list (list (car bindings)) 
+                         (accumulate-lets lets (cdr bindings) body)))))
   
   (accumulate-lets '() (cadr exp) (caddr exp)))
 
@@ -652,6 +657,287 @@
     (let ((z (+ x y 5))) 
       (* x z))))
 
-;the second part of the question makes me thing. If we have a let*? test,
+;the second part of the question makes me think: If we have a let*? test,
 ;then we are essentially doing:
-(eval '(let ((x 3)) (let ((y (+ x 2))) (let ((z (+ x y 5))) (* x z)))) env)
+;(eval '(let ((x 3)) (let ((y (+ x 2))) (let ((z (+ x y 5))) (* x z)))) env)
+
+(define (let*? exp) (tagged-list? exp 'let*))
+
+;the eval would then expand the let expression recursively to lambdas
+;if there is a let? test in the cond 
+
+;4.8
+
+(define (fib n)
+  (let fib-iter ((a 1)
+                 (b 0)
+                 (count n))
+    (if (= count 0)
+        b
+        (fib-iter (+ a b) a (- count 1)))))
+
+;var is bound within body to a procedure whos body is body and whos parameters are teh variables in bindings
+
+'(let ((fib-iter (lambda (a b count) 
+                  (if (= count 0)
+                      b
+                      (fib-iter (+ a b) a (- count 1))))))
+   (fib-iter 1 0 n))
+
+;this doesn't quite work because the fib-iter in the lambda doesn't know what the fib-iter is
+
+;heres let->combination
+(define (let->combination exp)
+  (cons (make-lambda (binding-vars (let-bindings exp))   
+                     (let-body exp))
+        (binding-exprs (let-bindings exp))))
+
+(let->combination test-let)
+;((lambda (y x) 5) 2 1)
+
+(define (fib n)
+  (let fib-iter ((a 1)
+                 (b 0)
+                 (count n))
+    (if (= count 0)
+        b
+        (fib-iter (+ a b) a (- count 1)))))
+
+;maybe a transformation in thos
+(define (fib n)
+  (let ((fib-iter (lambda (a b count) 
+                  (if (= count 0)
+                      b
+                      (fib-iter (+ a b) a (- count 1))))))
+    (fib-iter 1 0 n)))
+
+;doesn't work -- it doesn't know fib-iter is not bount when
+;it is evaluated
+
+;we probably want a tranformation into this:
+'(let () 
+  (define (fib-iter) 
+    (if (= count 0)
+        b
+        (fib-iter (+ a b) a (- count 1))))
+  (fib-iter 1 0 n))
+
+(define test-named-let
+  '(let fib-iter ((a 1)
+                  (b 0)
+                  (count n))
+    (if (= count 0)
+        b
+        (fib-iter (+ a b) a (- count 1)))))
+
+(define (named-let? expr) 
+  (and (let? expr)
+       (symbol? (cadr expr))))
+
+(define (let-name expr)
+  (cadr expr))
+
+(define (named-let-bindings expr)
+  (caddr expr))
+
+(define (named-let-body expr)
+  (cadddr expr))
+
+
+(let-name test-named-let)
+
+(named-let-bindings test-named-let)
+; ((a 1) (b 0) (count n))
+
+(named-let-body test-named-let)
+
+
+(list
+ 'let '()
+ (list 'define 
+      (cons (let-name test-named-let) (binding-vars (named-let-bindings test-named-let)))
+      (named-let-body test-named-let))
+ (cons (let-name test-named-let) (binding-exprs (named-let-bindings test-named-let))))
+
+(define (internal-define-let name bindings body)
+  (list 'let '() 
+        (list 'define
+              (cons name (binding-vars bindings))
+              body)
+        (cons name (binding-exprs bindings))))
+
+(define (named-let->let expr)
+  (internal-define-let (let-name expr)
+                       (named-let-bindings expr)
+                       (named-let-body expr)))
+
+
+(define (let->combination expr)
+  (if (named-let? expr)
+   ;this feels really goofy
+   (let->combination (named-let->let expr))
+   (cons (make-lambda (binding-vars (let-bindings expr))   
+                      (let-body expr))
+        (binding-exprs (let-bindings expr)))))
+
+(let->combination test-named-let)
+
+(let->combination '(let ((x 5)) (+ x x)))
+
+(equal?
+ (let->combination test-named-let)
+ '((lambda () (define (fib-iter count b a) (if (= count 0) b (fib-iter (+ a b) a (- count 1)))) (fib-iter n 0 1))))
+
+(equal? 
+  (let->combination '(let ((x 5)) (+ x x)))
+  '((lambda (x) (+ x x)) 5))
+
+;Section 4.1.6 on internal definitions might have a better solution:
+(define (fib n)
+  (let ((fib-iter '*unassigned*))
+    (set! fib-iter
+      (lambda (a b count) 
+        (if (= count 0)
+            b
+            (fib-iter (+ a b) a (- count 1)))))
+    (fib-iter 1 0 n)))
+
+(fib 0)
+;0
+(fib 1)
+;1
+(fib 2)
+;1
+(fib 3)
+;2
+(fib 4)
+;3
+
+(define (internal-set-let name bindings body)
+  (list 'let (list (list name (quote (quote *unassigned*))))
+        (list 'set! name
+              (make-lambda (binding-vars bindings)
+                           body))
+        (cons name (binding-exprs bindings))))
+
+(internal-set-let 'fib-iter 
+                  '((a 1) (b 0) (count n))
+                  '((if (= count 0)
+                        b
+                        (fib-iter (+ a b) a (- count 1)))))
+
+(define (named-let->let expr)
+  (internal-set-let (let-name expr)
+                    (named-let-bindings expr)
+                    (list (named-let-body expr))))
+
+(binding-vars (named-let-bindings test-named-let))
+
+;((lambda (fib-iter) (set! fib-iter (lambda (count b a) (if (= count 0) b (fib-iter (+ a b) a (- count 1))))) (fib-iter n 0 1)) (quote *unassigned*))
+
+(equal?
+ (let->combination test-named-let)
+ '((lambda (fib-iter) (set! fib-iter (lambda (a b count) (if (= count 0) b (fib-iter (+ a b) a (- count 1))))) (fib-iter 1 0 n)) (quote *unassigned*)))
+
+;Exercise 4.9
+
+;let's implement do and while
+
+;Guile documentationon do:
+
+; syntax: do ((variable init [step]) …) (test expr …) body …
+; Bind variables and evaluate body until test is true. 
+; The return value is the last expr after test, if given. 
+
+; (do ((i 1 (1+ i))
+;      (p 3 (* 3 p)))
+;     ((> i 4)
+;      p)
+;   (format #t "3**~s is ~s\n" i p))
+; -|
+; 3**1 is 3
+; 3**2 is 9
+; 3**3 is 27
+; 3**4 is 81
+; ⇒
+; 789
+
+(define test-do 
+  '(do ((i 1 (1+ i))
+        (p 3 (* 3 p)))
+       ((> i 4) p)
+     (format #t "3**~s is ~s\n" i p))
+)
+
+;what's the if test look like?
+'(if (> i 4)
+    (begin p)
+    (begin (format #t "3**~s is ~s\n" i p)
+           (do-it (1+ i) (* 3 p))))
+
+;it's just a named let with some begins
+'(let do-it ((i 1)
+             (p 3))
+     (if (> i 4)
+         (begin p)
+         (begin (format #t "3**~s is ~s\n" i p)
+                (do-it (1+ i) (* 3 p)))))
+
+; this is interesting...
+; my thought process:
+; what's the specification?
+; looked it up in Guile
+; there's a test in here, so let's write that part
+; okay, so how do you get the iteration to work?
+; its a let!
+
+(define (step-exprs bindings)
+  (define (accumulate-exprs exps bindings)
+    (if (null? bindings)
+        exps
+        (cons (caddar bindings) (accumulate-exprs exps (cdr bindings)))))
+  
+  (accumulate-exprs '() bindings))
+
+(step-exprs (cadr test-do))
+;((1+ i) (* 3 p))
+
+(define (do-bindings expr) (cadr expr))
+(define (do-test expr) (caaddr expr))
+(define (do-test-exprs expr) (cdaddr expr))
+(define (do-body expr) (cdddr expr))
+
+(do-test test-do)
+;(> i 4)
+(do-test-exprs test-do)
+;(p)
+(do-body test-do)
+;((format #t "3**~s is ~s\n" i p))
+
+;we don't even need  named let, just need to make  body:
+(internal-set-let 'do-it 
+                  (do-bindings test-do)
+                  (list (list 'if (do-test test-do)
+                        (cons 'begin (do-test-exprs test-do))
+                        (cons 'begin (append (do-body test-do) 
+                                             (list (cons 'do-it (step-exprs (cadr test-do)))))))))
+
+(quote
+(let ((do-it (quote *unassigned*))) 
+  (set! do-it 
+        (lambda (i p) 
+          (if (> i 4) 
+              (begin p) 
+              (begin (format #t "3**~s is ~s\n" i p) (do-it (1+ i) (* 3 p)))))) 
+  (do-it 1 3))  
+)
+
+;thus
+(define (do->let expr)
+  (internal-set-let 
+    'do-it 
+    (do-bindings expr)
+    (list (list 'if (do-test expr)
+          (cons 'begin (do-test-exprs expr))
+          (cons 'begin (append (do-body expr) 
+                               (list (cons 'do-it (step-exprs (cadr expr))))))))))
