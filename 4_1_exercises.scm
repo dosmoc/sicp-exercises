@@ -930,7 +930,7 @@
   (do-it 1 3))  
 )
 
-;thus
+;so it becomes
 (define (do->let expr)
   (internal-set-let 
     'do-it 
@@ -939,3 +939,35 @@
           (cons 'begin (do-test-exprs expr))
           (cons 'begin (append (do-body expr) 
                                (list (cons 'do-it (step-exprs (cadr expr))))))))))
+
+;Guile has an interesting while, but it can't be implemented with what I know right now
+;since it can return multiple values
+;Emacs Lisp has simple one:
+
+;(while true-or-false-test
+;       body...)
+
+;which is just:
+
+(let ((while-it '*unassigned*))
+  (set! while-it
+    lambda ()
+      (if (some-test)
+          (begin the-body while-it))))
+
+;suddenly I wonder about variable capture
+
+;TODO implement a transformation
+
+;Exercise 4.10.
+;TODO: Decide on a non-trivial syntax change. A parenthesis-less Lisp? Something more C-like?
+
+;4.1.3  Evaluator Data Structures
+
+;For conditionals, we accept anything to be true that is not the explicit false object.
+
+;Testing of predicates
+(define (true? x)
+  (not (eq? x false)))
+(define (false? x)
+  (eq? x false))
