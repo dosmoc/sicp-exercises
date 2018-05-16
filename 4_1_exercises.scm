@@ -561,7 +561,7 @@
 (cond->if example-cond)
 ;(if (assoc (quote b) (quote ((a 1) (b 2)))) (cadr (assoc (quote b) (quote ((a 1) (b 2))))) false)
 
-;but maybe we want something more like so <test> is evaluated only once12t:
+;but maybe we want something more like so <test> is evaluated only once:
 '(let ((test-val (assoc (quote b) (quote ((a 1) (b 2))))))
    (if test-val (cadr test-val) false))
 ;write something to do that later
@@ -676,8 +676,7 @@
         b
         (fib-iter (+ a b) a (- count 1)))))
 
-;var is bound within body to a procedure whos body is body and whos parameters are teh variables in bindings
-
+;var is bound within body to a procedure whos body is body and whos parameters are the variables in bindings
 '(let ((fib-iter (lambda (a b count) 
                   (if (= count 0)
                       b
@@ -711,10 +710,10 @@
                       (fib-iter (+ a b) a (- count 1))))))
     (fib-iter 1 0 n)))
 
-;doesn't work -- it doesn't know fib-iter is not bount when
+;doesn't work -- it doesn't know fib-iter is not bound when
 ;it is evaluated
 
-;we probably want a tranformation into this:
+;we probably want a transformation into this:
 '(let () 
   (define (fib-iter) 
     (if (= count 0)
@@ -843,7 +842,7 @@
 
 ;let's implement do and while
 
-;Guile documentationon do:
+;Guile documentation for do:
 
 ; syntax: do ((variable init [step]) …) (test expr …) body …
 ; Bind variables and evaluate body until test is true. 
@@ -889,8 +888,7 @@
 ; looked it up in Guile
 ; there's a test in here, so let's write that part
 ; okay, so how do you get the iteration to work?
-; its a let!
-
+; it's a let!
 (define (step-exprs bindings)
   (define (accumulate-exprs exps bindings)
     (if (null? bindings)
