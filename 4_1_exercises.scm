@@ -948,12 +948,11 @@
 ;       body...)
 
 ;which is just:
-
 (let ((while-it '*unassigned*))
   (set! while-it
-    lambda ()
+    (lambda ()
       (if (some-test)
-          (begin the-body while-it))))
+          (begin the-body while-it)))))
 
 ;suddenly I wonder about variable capture
 
@@ -971,3 +970,221 @@
   (not (eq? x false)))
 (define (false? x)
   (eq? x false))
+
+;Representing procedures
+(define (make-procedure parameters body env)
+  (list 'procedure parameters body env))
+(define (compound-procedure? p)
+  (tagged-list? p 'procedure))
+(define (procedure-parameters p) (cadr p))
+(define (procedure-body p) (caddr p))
+(define (procedure-environment p) (cadddr p))
+
+;Operations on Environments
+(define (enclosing-environment env) (cdr env))
+(define (first-frame env) (car env))
+(define the-empty-environment '())
+
+(define (make-frame variables values)
+  (cons variables values))
+(define (frame-variables frame) (car frame))
+(define (frame-values frame) (cdr frame))
+(define (add-binding-to-frame! var val frame)
+  (set-car! frame (cons var (car frame)))
+  (set-cdr! frame (cons val (cdr frame))))
+
+(define (extend-environment vars vals base-env)
+  (if (= (length vars) (length vals))
+      (cons (make-frame vars vals) base-env)
+      (if (< (length vars) (length vals))
+          (error "Too many arguments supplied" vars vals)
+          (error "Too few arguments supplied" vars vals))))
+
+;I don't know why this is cool, but it is
+(define (lookup-variable-value var env)
+  (define (env-loop env)
+    (define (scan vars vals)
+      (cond ((null? vars)
+             (env-loop (enclosing-environment env)))
+            ((eq? var (car vars))
+             (car vals))
+            (else (scan (cdr vars) (cdr vals)))))
+    (if (eq? env the-empty-environment)
+        (error "Unbound variable" var)
+        (let ((frame (first-frame env)))
+          (scan (frame-variables frame)
+                (frame-values frame)))))
+  (env-loop env))
+
+(define (set-variable-value! var val env)
+  (define (env-loop env)
+    (define (scan vars vals)
+      (cond ((null? vars)
+             (env-loop (enclosing-environment env)))
+            ((eq? var (car vars))
+             (set-car! vals val))
+            (else (scan (cdr vars) (cdr vals)))))
+    (if (eq? env the-empty-environment)
+        (error "Unbound variable -- SET!" var)
+        (let ((frame (first-frame env)))
+          (scan (frame-variables frame)
+                (frame-values frame)))))
+  (env-loop env))
+
+(define (define-variable! var val env)
+  (let ((frame (first-frame env)))
+    (define (scan vars vals)
+      (cond ((null? vars)
+             (add-binding-to-frame! var val frame))
+            ((eq? var (car vars))
+             (set-car! vals val))
+            (else (scan (cdr vars) (cdr vals)))))
+    (scan (frame-variables frame)
+          (frame-values frame))))
+
+; I can see why this representation might be slow... the 
+; more vars you have in an environment, the longer it will take
+
+; you have a loop within a loop
+; env-loop iterates through environments and scan iterates through
+; vars
+; this is where I could see where complexity analysis would be very
+; useful in figuring out the expected time for variable lookup
+; then statistical analysis for measuring lookup time...
+
+;Exercise 4.11
+
+(define (make-binding var val)
+  (cons var val))
+(define (binding-var binding)
+  (car binding))
+(define (binding-val binding)
+  (cdr binding))
+(define (extend-environment bindings base-env)
+  (cons bindings base-env))
+
+(define (lookup-variable-value var env)
+  (define (env-loop env)
+    (define (scan bindings)
+      (cond ((null? bindings)
+             (env-loop (enclosing-environment env)))
+            ((eq? var (binding-var (car bindings)))
+             (binding-val (car bindings)))
+            (else (scan (cdr bindings)))))
+    (if (eq? env the-empty-environment)
+        (error "Unbound variable" var)
+        (let ((frame (first-frame env)))
+          (scan frame))))
+  (env-loop env))
+
+(define (set-variable-value! var val env)
+  (define (env-loop env)
+    (define (scan bindings)
+      (cond ((null? bindings)
+             (env-loop (enclosing-environment env)))
+            ((eq? var (binding-var (car bindings)))
+             (set-cdr! (car bindings) val))
+            (else (scan (cdr bindings)))))
+    (if (eq? env the-empty-environment)
+        (error "Unbound variable -- SET!" var)
+        (let ((frame (first-frame env)))
+          (scan frame))))
+  (env-loop env))
+
+(define (define-variable! var val env)
+  (let ((frame (first-frame env)))
+    (define (scan bindings)
+      (cond ((null? bindings)
+             (add-binding-to-frame! (make-binding var val) frame))
+            ((eq? var (binding-var (car bindings)))
+             (set-cdr! (car bindings) val))
+            (else (scan (cdr bindings)))))
+    (scan frame)))
+
+;Exercise 4.12
+(define (lookup-binding-in-frame var bindings)
+  (cond ((null? bindings) '())
+        ((eq? var (binding-var (car bindings)))
+         (car bindings))
+        (else (lookup-var (cdr bindings)))))
+
+(define (lookup-binding var env not-found-msg)
+  (if (eq? env the-empty-environment)
+      (error "Unbound variable" msg)
+    (let ((binding (lookup-binding-in-frame var (car env))))
+      (if (not (null? binding))
+          binding
+          (lookup-binding var (enclosing-environment env) not-found-msg)))))
+
+(define (lookup-variable-value var env)
+  (let ((binding (lookup-binding var env "")))
+    (binding-var binding)))
+
+(define (set-variable-value! var val env)
+  (let ((binding (lookup-binding var env "-- SET!")))
+    (set-cdr! binding val)))
+
+(define (define-variable! var val env)
+  (let ((frame (first-frame env)))
+    (let ((binding (lookup-binding-in-frame var frame)))
+      (if ((null? binding)
+          (add-binding-to-frame! (make-binding var val) frame))
+          (set-cdr! binding val)))))
+
+(define test-bindings '((x . 6)))
+
+(define (last-pair x)
+  (if (null? (cdr x))
+      x
+      (last-pair (cdr x))))
+
+(define (append! x y)
+  (set-cdr! (last-pair x) y)
+  x)
+
+(define (add-binding-to-frame! binding frame)
+  (append! (list binding) frame))
+
+(add-binding-to-frame! '(y . 5) test-bindings)
+
+;Can't do something like this:
+;(define (add-binding-to-frame! binding frame)
+;  (set! frame (cons binding frame)))
+;Because set is mutating the variable in the environment created when you call the variable.
+;I'm not sure why this doesn't apply to set-car! and set-cdr!
+
+;This really bothers me so I'll use Oleg's emulation of '&':
+(define-syntax &
+  (syntax-rules ()
+   ((& x)
+    (lambda (action)
+     (case action
+       ((ref) x)
+       ((set) (lambda (new-val) (set! x new-val))))))))
+
+(define (p-ref ptr) 
+  (ptr 'ref))
+
+(define (*= ptr)
+  (ptr 'set))
+
+(let ((old-* *))
+  (set! * 
+  (lambda args
+    (if (and (pair? args) (null? (cdr args)) (procedure? (car args)))
+        (p-ref (car args))
+        (apply old-* args)))))
+
+(define (add-binding-to-frame! binding frame)
+  (let ((old-frame (p-ref frame)))
+   ((*= frame) (cons binding old-frame))))
+
+(define test-bindings '((x . 6)))
+(add-binding-to-frame! '(y . 5) (& test-bindings))
+;test-bindings
+;((y . 5) (x . 6))
+
+;Feels so wrong!
+
+;Exercise 4.13
+;I'd probably unbind it in all frames, because you might expect it to mean that subsequent accesses to that variable  
