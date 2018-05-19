@@ -1052,8 +1052,35 @@
 ; useful in figuring out the expected time for variable lookup
 ; then statistical analysis for measuring lookup time...
 
-;Exercise 4.11
+;let's see what it looks like
 
+(define my-env 
+  (extend-environment '() '() the-empty-environment))
+
+(lookup-variable-value 'x my-env)
+;Unbound variable x
+
+(set-variable-value! 'x 5 my-env)
+;Unbound variable -- SET! x
+;here we go
+
+(define-variable! 'x 5 my-env);
+;Unspecified return value
+my-env 
+;(((x) 5))
+(define-variable! 'y 6 my-env);
+my-env 
+;(((y x) 6 5))
+(lookup-variable-value 'x my-env)
+;5
+(lookup-variable-value 'y my-env)
+;6
+(set-variable-value! 'x 0 my-env)
+my-env 
+;(((y x) 6 0))
+
+
+;Exercise 4.11
 (define (make-binding var val)
   (cons var val))
 (define (binding-var binding)
@@ -1061,7 +1088,39 @@
 (define (binding-val binding)
   (cdr binding))
 (define (extend-environment bindings base-env)
-  (cons bindings base-env))
+  (cons (make-frame bindings) base-env))
+
+(define (make-frame bindings)
+  (define (add-binding binding)
+      (set! bindings (cons binding bindings))
+      'ok)
+  (define (dispatch m)
+    (cond ((eq? m 'add-binding) add-binding)
+          ((eq? m 'get-bindings) bindings)
+          (else (error "Uknown operation -- FRAME" m))))
+  dispatch)
+
+;lets append the bindings
+(define (add-binding-to-frame! binding frame)
+  ((frame 'add-binding) binding))
+
+(define (get-frame-bindings frame)
+  (frame 'get-bindings))
+
+(define test-frame (make-frame '()))
+(get-frame-bindings test-frame)
+;()
+(add-binding-to-frame! '(x . 5) test-frame)
+;ok
+(get-frame-bindings test-frame)
+;((x . 5))
+(add-binding-to-frame! '(y . 6) test-frame)
+;ok
+(get-frame-bindings test-frame)
+;((y . 6) (x . 5))
+
+(define test-env (extend-environment '((x . 5)) the-empty-environment))
+
 
 (define (lookup-variable-value var env)
   (define (env-loop env)
@@ -1076,6 +1135,8 @@
         (let ((frame (first-frame env)))
           (scan frame))))
   (env-loop env))
+
+(lookup-variable-value 'x test-env)
 
 (define (set-variable-value! var val env)
   (define (env-loop env)
@@ -1101,6 +1162,31 @@
             (else (scan (cdr bindings)))))
     (scan frame)))
 
+(define my-env 
+  (extend-environment '() the-empty-environment))
+
+(lookup-variable-value 'x my-env)
+;Unbound variable x
+
+(set-variable-value! 'x 5 my-env)
+;Unbound variable -- SET! x
+;here we go
+
+(define-variable! 'x 5 my-env);
+;Unspecified return value
+my-env
+;((x . 5))
+(define-variable! 'y 6 my-env);
+my-env 
+;(((y x) 6 5))
+(lookup-variable-value 'x my-env)
+;5
+(lookup-variable-value 'y my-env)
+;6
+(set-variable-value! 'x 0 my-env)
+my-env 
+;(((y x) 6 0))
+
 ;Exercise 4.12
 (define (lookup-binding-in-frame var bindings)
   (cond ((null? bindings) '())
@@ -1110,7 +1196,7 @@
 
 (define (lookup-binding var env not-found-msg)
   (if (eq? env the-empty-environment)
-      (error "Unbound variable" msg)
+      (error "Unbound variable" msg var)
     (let ((binding (lookup-binding-in-frame var (car env))))
       (if (not (null? binding))
           binding
@@ -1131,29 +1217,14 @@
           (add-binding-to-frame! (make-binding var val) frame))
           (set-cdr! binding val)))))
 
-(define test-bindings '((x . 6)))
-
-(define (last-pair x)
-  (if (null? (cdr x))
-      x
-      (last-pair (cdr x))))
-
-(define (append! x y)
-  (set-cdr! (last-pair x) y)
-  x)
-
-(define (add-binding-to-frame! binding frame)
-  (append! (list binding) frame))
-
-(add-binding-to-frame! '(y . 5) test-bindings)
-
 ;Can't do something like this:
 ;(define (add-binding-to-frame! binding frame)
 ;  (set! frame (cons binding frame)))
 ;Because set is mutating the variable in the environment created when you call the variable.
 ;I'm not sure why this doesn't apply to set-car! and set-cdr!
 
-;This really bothers me so I'll use Oleg's emulation of '&':
+; This really bothers me so I'll use Oleg's emulation of '&' from here:
+; http://okmij.org/ftp/Scheme/pointer-as-closure.txt
 (define-syntax &
   (syntax-rules ()
    ((& x)
@@ -1176,15 +1247,14 @@
         (apply old-* args)))))
 
 (define (add-binding-to-frame! binding frame)
-  (let ((old-frame (p-ref frame)))
-   ((*= frame) (cons binding old-frame))))
+  ((*= frame) (cons binding (* frame)))
+  'ok)
 
 (define test-bindings '((x . 6)))
 (add-binding-to-frame! '(y . 5) (& test-bindings))
-;test-bindings
+test-bindings
 ;((y . 5) (x . 6))
-
-;Feels so wrong!
+;Feels so wrong! Also makes me want to write a C-intepreter in Scheme...
 
 ;Exercise 4.13
-;I'd probably unbind it in all frames, because you might expect it to mean that subsequent accesses to that variable  
+;I'd probably unbind it in all frames, because you might expect it to mean that subsequent accesses to that variable
