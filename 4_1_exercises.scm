@@ -1090,6 +1090,23 @@ my-env
 (define (extend-environment bindings base-env)
   (cons (make-frame bindings) base-env))
 
+; We cannot represent an empty environment as an empty list, at
+; least not as a plain empty list. Section 3.3.3  states
+; "In order to have a place that we can change when we add a new record 
+; to the table, we build the table as a headed list."
+;
+; At the same time, we can't pass an empty list into a procedures and
+; use set! to change its definition, since set! simply changes the
+; binding defined by the environment. Mutating a variable bound by 
+; a function means we can't abstract setting the empty list
+; to a new value. 
+; The set-car! and set-cdr! procedures change the pointers of the underlying n
+; cons cells... I don't know how to describe the semantics in
+; contrast to what set! does.
+;
+; However, if you could pass by reference lke
+ 
+
 (define (make-frame bindings)
   (define (add-binding binding)
       (set! bindings (cons binding bindings))
@@ -1133,7 +1150,7 @@ my-env
     (if (eq? env the-empty-environment)
         (error "Unbound variable" var)
         (let ((frame (first-frame env)))
-          (scan frame))))
+          (scan (get-frame-bindings frame)))))
   (env-loop env))
 
 (lookup-variable-value 'x test-env)
@@ -1187,6 +1204,71 @@ my-env
 my-env 
 ;(((y x) 6 0))
 
+;One thing I found out is that
+;you can't do something like this:
+;(define (add-binding-to-frame! binding frame)
+;  (set! frame (cons binding frame)))
+;Because set is mutating the variable in the environment created when you call the variable.
+;I'm not sure why this doesn't apply to set-car! and set-cdr! 
+;maybe SRFI-17 has some hints https://srfi.schemers.org/srfi-17/srfi-17.html
+;This means you can't represent an empty frame as an empty list
+
+; This really bothers me so I'll use Oleg's emulation of '&' from here:
+; http://okmij.org/ftp/Scheme/pointer-as-closure.txt
+(define-syntax &
+  (syntax-rules ()
+   ((& x)
+    (lambda (action)
+     (case action
+       ((ref) x)
+       ((set) (lambda (new-val) (set! x new-val))))))))
+
+(define (p-ref ptr) 
+  (ptr 'ref))
+
+(define (*= ptr)
+  (ptr 'set))
+
+(let ((old-* *))
+  (set! * 
+  (lambda args
+    (if (and (pair? args) (null? (cdr args)) (procedure? (car args)))
+        (p-ref (car args))
+        (apply old-* args)))))
+
+(define (add-binding-to-frame! binding frame)
+  ((*= frame) (cons binding (p-ref frame)))
+  'ok)
+
+(define test-bindings '())
+(add-binding-to-frame! '(y . 5) (& test-bindings))
+test-bindings
+;((y . 5))
+;Feels so wrong! Also makes me want to write a C-intepreter in Scheme...
+
+;That means that 
+(define (extend-environment bindings base-env)
+  (cons bindings base-env))
+
+(define (define-variable! var val env)
+  (let ((frame (first-frame (p-ref env))))
+    (define (scan bindings)
+      (cond ((null? bindings)
+             (add-binding-to-frame! (make-binding var val) (& frame)))
+            ((eq? var (binding-var (car bindings)))
+             (set-cdr! (car bindings) val))
+            (else (scan (cdr bindings)))))
+    (scan frame)))
+
+(define test-env (extend-environment '() the-empty-environment))
+(first-frame test-env)
+;()
+
+(define-variable! 'x 6 (& test-env))
+test-env
+
+
+
 ;Exercise 4.12
 (define (lookup-binding-in-frame var bindings)
   (cond ((null? bindings) '())
@@ -1217,44 +1299,7 @@ my-env
           (add-binding-to-frame! (make-binding var val) frame))
           (set-cdr! binding val)))))
 
-;Can't do something like this:
-;(define (add-binding-to-frame! binding frame)
-;  (set! frame (cons binding frame)))
-;Because set is mutating the variable in the environment created when you call the variable.
-;I'm not sure why this doesn't apply to set-car! and set-cdr!
 
-; This really bothers me so I'll use Oleg's emulation of '&' from here:
-; http://okmij.org/ftp/Scheme/pointer-as-closure.txt
-(define-syntax &
-  (syntax-rules ()
-   ((& x)
-    (lambda (action)
-     (case action
-       ((ref) x)
-       ((set) (lambda (new-val) (set! x new-val))))))))
-
-(define (p-ref ptr) 
-  (ptr 'ref))
-
-(define (*= ptr)
-  (ptr 'set))
-
-(let ((old-* *))
-  (set! * 
-  (lambda args
-    (if (and (pair? args) (null? (cdr args)) (procedure? (car args)))
-        (p-ref (car args))
-        (apply old-* args)))))
-
-(define (add-binding-to-frame! binding frame)
-  ((*= frame) (cons binding (* frame)))
-  'ok)
-
-(define test-bindings '((x . 6)))
-(add-binding-to-frame! '(y . 5) (& test-bindings))
-test-bindings
-;((y . 5) (x . 6))
-;Feels so wrong! Also makes me want to write a C-intepreter in Scheme...
 
 ;Exercise 4.13
 ;I'd probably unbind it in all frames, because you might expect it to mean that subsequent accesses to that variable
