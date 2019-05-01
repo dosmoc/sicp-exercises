@@ -357,10 +357,13 @@
  ;this will only work if the complex number is in rectangular form
  (put '=zero? '(complex) 
       (lambda (x) (equ? x (make-complex-from-real-imag 0 0))))
-
- (put '=zero?' '(polynomial)
-      (lambda (coeff) (and (not (list? coeff)) (= coeff 0))))
  
+  ; want this eventually
+  ; (put '=zero?' '(polynomial)
+  ;     (lambda (coeff) (and (not (list? coeff)) (= coeff 0))))
+  
+
+
  'done)
  
 (install-zero?-package)
@@ -416,9 +419,9 @@
                         (t2->t1
                          (apply-generic op a1 (t2->t1 a2)))
                         (else
-                         (error "No method for these types"
+                         (error "No method for these types (APPLY-GENERIC 2.5.2)"
                                 (list op type-tags))))))
-              (error "No method for these types"
+              (error "No method for these types (APPLY-GENERIC 2.5.2)"
                      (list op type-tags)))))))
 
 (add 1 (make-complex-from-real-imag 1 2))
@@ -472,7 +475,7 @@
               (error "No method for these types"
                      (list op type-tags))))))))
 
-(expo (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2))
+;(expo (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2))
 ;works! in that it raises an error if there is no method for those types
 
 ;Exercise 2.82
@@ -536,9 +539,9 @@
           	 (error "No method for these types"))))))
 
 ;lets add a coercion to test
-(mul (make-complex-from-real-imag 1 2) (make-rational 1 2))
+;(mul (make-complex-from-real-imag 1 2) (make-rational 1 2))
 ;raises the correct error!
-(expo (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2))
+;(expo (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2) (make-complex-from-real-imag 1 2))
 ;raises the correct error!
 (mul (make-complex-from-real-imag 1 2) 1)
 ;This won't work simply on mixed-type operations that aren't 
@@ -657,7 +660,8 @@
 (get 'denom '(rational))
 (get 'numer '(rational))
 
-(raise (raise (make-rational 1 2)))
+;this breaks without fixing type tagging
+;(raise (raise (make-rational 1 2)))
 
 (type-tag (raise 1))
 ;rational
@@ -679,7 +683,8 @@
 ;(real . 1)
 (raise (raise (raise 1)))
 ;(complex rectangular 1 . 0) allright!
-(raise (raise (raise (raise 1))))
+;(raise (raise (raise (raise 1))))
+;This is an error: No method for these types
 
 ;2.84
 (define lowest-type 1)
@@ -755,7 +760,7 @@
          (if (not (all-same? type-tags))
              (apply apply-generic 
                     (cons op (coerce-args (list->set type-tags))))
-          	 (error "No method for these types"))))))
+          	 (error "No method for these types (type-tags)"))))))
 
 (mul 4 (make-rational 1 2))
 ;(rational 2 . 1)
@@ -837,7 +842,7 @@
         	 (if (not (all-same? type-tags))
             	 (apply apply-generic 
             	        (cons op (coerce-args args (list->set type-tags))))
-          		 (error "No method for these types"))))))
+          		 (error "No method for these types (APPLY-GENERIC Exercise 2.85)" type-tags))))))
 
 (mul (make-rational 1 2) (make-rational 1 2))
 ;(rational 1 . 4)
