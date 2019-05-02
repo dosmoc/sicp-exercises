@@ -280,9 +280,19 @@
 ; note that you have to re-evaluate
 ; all the procedures that depend on cons-stream
 ; you can't simply evaluate the define-syntax
-; expression again. Is this because of expansion
-; vs. runtime?
+; expression again. 
 
+;trying to evaluate cons-stream gives you a syntax error:
+
+; Syntactic keyword may not be used as an expression: #[keyword-value-item 14]
+; To continue, call RESTART with an option number:
+; (RESTART 1) => Return to read-eval-print level 1.
+
+; In the environmental model of evaluation, a name in an environment
+; can point to a pair of the lambda expression and a pointer to the environment
+; it was created in
+; but define-syntax makes something different
+; 
 
 ;Exercise 3.52
 (define (even? n)
