@@ -118,11 +118,13 @@
   (if (= n 0)
       (stream-car s)
       (stream-ref (stream-cdr s) (- n 1))))
+
 (define (stream-map proc s)
   (if (stream-null? s)
       the-empty-stream
       (cons-stream (proc (stream-car s))
                    (stream-map proc (stream-cdr s)))))
+
 (define (stream-for-each proc s)
   (if (stream-null? s)
       'done
@@ -305,10 +307,12 @@
 ;sum is 0
 
 (define seq (stream-map accum (stream-enumerate-interval 1 20)))
-;sum is 1 because we've applied accum once in cons-stream
+seq
+;(1 . #[compound-procedure 24])
+
 (define y (stream-filter even? seq))
-;sum is 6, 
 ;y is (6 . #[compound-procedure 33])
+
 (define z (stream-filter (lambda (x) (= (remainder x 5) 0))
                          seq))
 ;sum is 10 with memoization, 15 without
@@ -347,13 +351,28 @@
 
 ;sum is 362
 
+; because seq is used both in defining y
+; and defining z:
 
-; right now I'm inclined to just say, don't mix delayed evaluation with state manipulation
-; without a detailed explanation of the differences in the memoized vs not memoized evaluations
-; beyond the general notion that the memoized version doesn't recalculate the values. Each 
-; (accum 1) ... (accum n) just returns the result previously calculated
-; the (set! sum (+ x sum)) is run once each time accum is evaluated for a particular number.
-; In the non-memoized version it always is run
+; with memoization, the calls to (accum x) in 
+; defining z using seq would just return
+; 1, 3, 6 from the previously
+; forced result of y 
+; the set! is skipped
+; 
+; without memoization, set! is called when
+; forcing z
+; causing sum to increase anytime a delayed
+; accum is forced
+
+; mutation in streams that are memoized 
+; does not necessarily result in equivalent values
+; as just a mix of mutation in streams
+;
+; hypothesis: any mutation of a definition 
+; that's not idempotent and the value is used
+; by the stream will differ between memoized and non-memoized
+; versions
 
 ;3.5.2  Infinite Streams
 
