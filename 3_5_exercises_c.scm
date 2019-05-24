@@ -7,8 +7,8 @@
                                          (stream-cdr s2))
                             (mul-series s1 s2))))
 
-;I'm still not understanding this recursive definition
-;the series:  
+; I'm still not understanding this recursive definition
+; the series:  
 ; (a0 + a1 x + a2 x2 + a3 x3 )(b0 + b1 x + b2 x2 + b3 x3 )
 ; is (a0 * b0) + (the rest of the a series * the rest of the b series)
 ;
@@ -80,7 +80,6 @@
 ; (+ (+ (* a0 b0) (* a1 b1)) (* a2 b2))
 ; (+ (+ (+ (* a0 b0) (* a1 b1)) (* a2 b2)) (* a3 b3))
 
-
 (define (integers-starting-from n)
   (cons-stream n (integers-starting-from (+ n 1))))
 
@@ -96,3 +95,10 @@
 ; (+ (* 1 2) (* 2 3)) => (+ 2 6) => 8
 (stream-ref x 2)
 ; (+ (+ (* 1 2) (* 2 3)) (* 3 4)) => (+ (+ 2 6) 12) => (+ 8 12) => 20
+
+; this is probably related to corecursion... 
+; structural recursion operates on data that gets progressively smaller
+; before hitting a base case
+; here we're starting with a base case and the data gets bigger (potentially infinite)
+; I'm just thinking about how to understand weaving streams to achieve a goal
+; I suppose it just takes practice... like keeping track of state manipulation in imperative code
