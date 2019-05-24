@@ -413,7 +413,7 @@
 
 ;Let's re-write this...
 ;s is defined as (add-streams (cons-stream 1 s) (cons-stream 1 s))... which means s first element
-;is 2. Then you (add-streams (cons-stream 2 s) (cons-stream 2 s))... whicih means the second
+;is 2. Then you (add-streams (cons-stream 2 s) (cons-stream 2 s))... which means the second
 ;element of s is 4.... it's powers of two
 
 ;The zeroeth element turns out to be 1, which makes sense since 2⁰ = 1
@@ -615,8 +615,7 @@
 ; X = 1 - S_R * X
 
 (define invert-unit-series s
-  (cons-stream 1 (mul-series (scale-stream (stream-cdr s) -1)  
-                             invert-unit-series)))
+  (cons-stream 1 (add-streams (negative-stream))))
 
 ;Exercise 3.62
 ;Latersss

@@ -364,15 +364,17 @@ seq
 ; forcing z
 ; causing sum to increase anytime a delayed
 ; accum is forced
-
-; mutation in streams that are memoized 
-; does not necessarily result in equivalent values
-; as just a mix of mutation in streams
 ;
-; hypothesis: any mutation of a definition 
-; that's not idempotent and the value is used
-; by the stream will differ between memoized and non-memoized
-; versions
+; in SICP's memoization procedure:
+; memoized procedures that set! a value are only executed once when forced
+; non-memoized procedures will set! the value whenever forced
+; hypothesis: unless the set! is idempotent, then the variable updated
+; by set! will have a different value between memoized and non-memoized
+; versions of the procedure if the stream it is a part of is 
+; used more than once
+
+; basically: don't mix mutation and delayed evaluation unless you 
+; know what you're doing
 
 ;3.5.2  Infinite Streams
 
@@ -603,7 +605,7 @@ seq
 ;I'm still not understanding this recursive definition
 ;the series:  
 ; (a0 + a1 x + a2 x2 + a3 x3 )(b0 + b1 x + b2 x2 + b3 x3 )
-; is (a0 * b0) + (the rest of the a series * the rest of the be series)
+; is (a0 * b0) + (the rest of the a series * the rest of the b series)
 ;
 ; using the thinking behind the section "Defining streams implicitly"
 ;
@@ -613,7 +615,13 @@ seq
 ;Exercise 3.61
 ;todo understand power series and ... calculus
 
-(define )
+(define (invert-unit-series s)
+  (stream-cons 1 
+               (mul-series (negative-stream (stream-cdr s))
+                           invert-unit-series)))
+
+
+
 
 ;Exercise 3.62
 ;todo understand power series and ... calculus
@@ -681,7 +689,6 @@ seq
   (stream-map stream-car
               (make-tableau transform s)))
 
-
 (define pi-stream3 (accelerated-sequence euler-transform pi-stream))
 
 (stream-ref pi-stream3 0)
@@ -710,7 +717,6 @@ seq
   
 ;Alyssa says it is less efficient because 
 ;it performs redundant calculations
-
 (sqrt-stream 4) ;gives us something like:
 
 (cons-stream 1.0
@@ -815,8 +821,6 @@ seq
 ;pretty quickly
 
 ;Infinite streams of pairs
-
-
 (define (interleave s1 s2)
   (if (stream-null? s1)
       s2
@@ -825,7 +829,6 @@ seq
 
 ; this is different from my alternate procedure,
 ; and more correct because it handles the null stream
-
 
 (define (pairs s t)
   (cons-stream
@@ -912,3 +915,5 @@ seq
 ;whoa, why are we running out of memory?
 ;the car increases veeery slowly
 ;so it looks like it'll take a long time to get to '(99 100)
+
+;Are we running out of memory because its memoized?
