@@ -553,7 +553,6 @@
 (define (div-streams s1 s2)
   (stream-map / s1 s2))
 
-
 (define 1-div-n-series (div-streams ones integers))
 
 (stream-ref 1-div-n-series 0)
@@ -613,6 +612,8 @@
 ; (1 + S_R) * X = 1
 ; X + S_R * X = 1
 ; X = 1 - S_R * X
+
+(load "streams.scm")
 
 (define invert-unit-series s
   (cons-stream 1 (add-streams (negative-stream))))

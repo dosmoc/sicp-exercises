@@ -616,12 +616,40 @@ seq
 ;todo understand power series and ... calculus
 
 (define (invert-unit-series s)
-  (stream-cons 1 
+  (cons-stream 1 
                (mul-series (negative-stream (stream-cdr s))
-                           invert-unit-series)))
+                           (invert-unit-series s))))
 
 
+(define (integers-starting-from n)
+  (cons-stream n (integers-starting-from (+ n 1))))
 
+(define s1 (integers-starting-from 1))
+(define s2 (integers-starting-from 1))
+
+(define s4 (invert-unit-series s2))
+
+(stream-ref s4 0)
+(stream-ref s4 1)
+(stream-ref s4 2)
+(stream-ref s4 4)
+
+;the series is 1 2 3 4 5
+; inverse = 1 - 3 - (02
+; -
+
+(define s3 
+  (mul-series s1
+              (invert-unit-series s2)))
+
+(stream-ref s3 0)
+(stream-ref s3 1)
+;-3
+; which is 1 + (-2 * 2)
+(stream-ref s3 2)
+;9
+(stream-ref s3 3)
+;-39
 
 ;Exercise 3.62
 ;todo understand power series and ... calculus
